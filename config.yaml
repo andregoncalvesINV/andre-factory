@@ -1,11 +1,19 @@
 # Which agent (adapter + model) runs each stage. See factory-plan.md section 1.
+# Split: Codex plans and checks, Claude Code builds (see factory-progress.md → Decisions made).
 stages:
-  context:             { adapter: TBD }
-  requirements:        { adapter: TBD }
-  gameplan:            { adapter: TBD }
-  development:         { adapter: TBD }
-  testing:             { adapter: TBD }
-  code_review:         { adapter: TBD }
-  review_gameplan:     { adapter: TBD }
-  context_update:      { adapter: TBD }
+  context:             { adapter: codex }
+  requirements:        { adapter: codex }
+  gameplan:            { adapter: codex }
+  development:         { adapter: claude-code }
+  testing:             { adapter: codex }
+  code_review:         { adapter: codex }
+  review_gameplan:     { adapter: codex }
+  context_update:      { adapter: codex }
   commit:              { adapter: none }   # deterministic, no AI
+
+# Defaults. A project can override them in <project>/.factory/project.yaml.
+review:
+  threshold: 8      # minimum score out of 10; zero failing tests is always required
+  max_loops: 3      # fix loops before handing over to the user
+git:
+  mode: branch-pr   # branch ticket-xxx + pull request

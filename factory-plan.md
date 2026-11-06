@@ -22,13 +22,24 @@ Three layers, kept strictly apart:
 
 Agents talk to each other **only through markdown/JSON files on disk**. So any agent that can read and write files can do any stage, and swapping vendors only means changing one line of config.
 
-A `config.yaml` maps stage → adapter + model, for example:
+A `config.yaml` maps stage → adapter + model. The current mapping (Codex plans and checks, Claude Code builds):
 ```yaml
 stages:
-  requirements: { adapter: gemini-cli }
-  development:  { adapter: claude-code, model: opus }
-  code_review:  { adapter: codex }   # a different vendor from dev = fewer shared blind spots
+  context:         { adapter: codex }
+  requirements:    { adapter: codex }
+  gameplan:        { adapter: codex }
+  development:     { adapter: claude-code }
+  testing:         { adapter: codex }   # a different vendor from dev = fewer shared blind spots
+  code_review:     { adapter: codex }
+  review_gameplan: { adapter: codex }
+  context_update:  { adapter: codex }
+  commit:          { adapter: none }    # deterministic, no AI
+
+review: { threshold: 8, max_loops: 3 }  # defaults, a project can override them in project.yaml
+git:    { mode: branch-pr }             # branch ticket-xxx + pull request
 ```
+
+The orchestrator is written in **TypeScript / Node**: Claude Code and Codex are both installed through npm, so Node is already on every machine that runs these agents.
 
 ---
 
@@ -52,9 +63,11 @@ andre-factory/
   config.yaml
 ```
 
-**Inside the target project the factory works on:**
+**Inside the target project the factory works on** (any project, passed in as a path). This folder is **committed to the project repo** as part of each ticket's PR, so the team and any agent or machine share the same context and changelog history:
 ```
 <project>/.factory/
+  project.yaml           # project settings: language, main branch, install/test/lint commands, overrides
+  .gitignore             # ignores temporary files only (state.json, raw logs)
   context/
     CONTEXT.md           # what the project is, its domain and purpose, its entities
     ARCHITECTURE.md      # modules, data flow, dependencies
@@ -64,13 +77,26 @@ andre-factory/
       00-ticket.md                  # copy of the input text file
       01-requirements.md            # use cases and technical requirements
       02-gameplan.md                # technical plan, libraries, steps
-      03-dev-summary.md             # commit-style summary of what was done
+      03-dev-summary.md             # commit-style summary of what was done (+ accepted/disputed review findings in fix loops)
       04-tests.md                   # what was tested, including edge cases that try to break the code
       05-review.json + .md          # findings and score (one per iteration)
       05b-review-gameplan.md        # only if the review failed
       06-domain-arch-conv-diff.md   # changelog entry: what changed in CONTEXT/ARCHITECTURE/CONVENTIONS
       decisions.md                  # every question asked and the answer given
-      state.json                    # current stage, iteration count, status
+      state.json                    # current stage, iteration count, status (gitignored)
+```
+
+**`project.yaml`** is what makes the factory plug and play. Stage 01 detects the settings (from package.json, pyproject, Makefile…), writes the file and asks the user to confirm. The user can edit it at any time. Example:
+```yaml
+language: typescript
+main_branch: main
+commands:
+  install: npm ci
+  test: npm test
+  lint: npm run lint
+# optional overrides of the factory's config.yaml
+review: { threshold: 8, max_loops: 3 }
+git:    { mode: branch-pr }
 ```
 
 ---
@@ -82,24 +108,35 @@ andre-factory/
       ↓
 [02 requirements] → [03 gameplan] → [04 dev] → [05 tests] → [06 review]
                          ↑                                       │
-                         │                        score >= threshold? ──yes──→ [07 context update] → [08 commit/push]
+                         │                             review passes? ──yes──→ [07 context update] → [08 commit + PR]
                          │                                       │no
-                         └── [06b review-gameplan] ←─────────────┘   (max N loops, then hand over to the user)
+                         └── [06b review-gameplan] ←─────────────┘   (max 3 loops, then hand over to the user)
 ```
+In a fix loop, 06b sends the work back to **04 development** (not to 03), with the review and the fix plan as extra input.
 
 | Stage | Reads | Writes | Notes |
 |---|---|---|---|
-| 01 Context | the whole project | `context/*.md` | Runs once, then gets updated by stage 07 |
+| 01 Context | the whole project | `context/*.md` + `project.yaml` | Runs once, then gets updated by stage 07. Detects project settings and asks the user to confirm them |
 | 02 Requirements | ticket + context docs | `01-requirements.md` | Use cases, acceptance criteria, technical requirements |
 | 03 Gameplan | requirements + context | `02-gameplan.md` | Library and approach choices are where most questions come up |
-| 04 Development | gameplan + conventions | code + `03-dev-summary.md` | Works on branch `ticket-123` |
+| 04 Development | gameplan + conventions (+ review + fix plan in a fix loop) | code + `03-dev-summary.md` | Works on branch `ticket-123`. In a fix loop it judges each finding itself (see "Right to disagree" below) |
 | 05 Testing | gameplan + code diff | test files + `04-tests.md` | **The orchestrator runs the tests itself** and saves the real results, rather than trusting what the agent reports |
-| 06 Code review | requirements + gameplan + diff + test results | `05-review.json` | Structured score; ideally a different vendor from dev |
+| 06 Code review | requirements + gameplan + diff + test results (+ dev's disputes from the previous loop) | `05-review.json` | Structured score; a different vendor from dev |
 | 06b Review gameplan | review + original gameplan | `05b-review-gameplan.md` | Goes back to 04 with a fix plan |
 | 07 Context update | diff + context docs | updated `CONTEXT.md` / `ARCHITECTURE.md` / `CONVENTIONS.md` (whichever changed) + `06-domain-arch-conv-diff.md` | This is the trackable changelog. A new domain entity changes CONTEXT, a new module changes ARCHITECTURE, a new pattern changes CONVENTIONS |
-| 08 Commit | dev summary | git commit + push | Plain deterministic code, no AI needed |
+| 08 Commit | dev summary | commit on branch `ticket-xxx`, push, open PR | Plain deterministic code, no AI needed. Mode set by `git.mode` (default `branch-pr`) |
 
-**Review threshold (decided by code, not by the AI's opinion):** fail if tests fail, OR any finding has severity "critical", OR the score is below the threshold set in config (e.g. 8/10). The loop is capped at e.g. 3 iterations, after which it pauses for the user.
+**When the review passes (decided by code, not by the AI's opinion):**
+- **Zero failing tests.** This is a hard gate with no exceptions.
+- No finding with severity "critical".
+- Score **≥ 8/10** (`review.threshold`).
+- Capped at **3 loops** (`review.max_loops`), after which the factory pauses and hands over to the user.
+
+**Right to disagree (so the agents don't fight forever):**
+1. In a fix loop, the development agent reads every review finding and judges it itself.
+2. If it agrees, it fixes the code. If it disagrees, it leaves the code as is and adds a comment on that exact spot explaining why, e.g. `// FACTORY-DISPUTE(R3): <reason>`. It lists accepted and disputed findings in `03-dev-summary.md`.
+3. The next review must read the disputes. For each one, the reviewer either accepts the reasoning (the finding is dropped) or keeps it with a counter-argument.
+4. **Tie-break:** if the same finding is still disputed after the second review, the orchestrator stops and asks the user to decide. The answer goes into `decisions.md`, and both agents must follow it.
 
 ---
 
@@ -125,17 +162,25 @@ This protocol works the same with every vendor, because it's just a file.
 Mixing vendors is the default from day one: each stage runs on whichever agent suits it best.
 
 1. **Phase 1: write the prompts and run them by hand, already multi-vendor.** Write `stages/*/prompt.md` and run each one manually in the agent planned for it (e.g. dev in Claude Code, review in Codex) on a sample project and ticket. This tests that the prompts and file contracts work in more than one tool before any orchestration code exists.
-2. **Phase 2: minimal orchestrator with several adapters.** A CLI command (`factory run ticket-123`) that runs the stages in order, keeps `state.json`, and comes with at least the Claude Code and Codex adapters (plus any others the stage mapping needs), selected per stage through `config.yaml`.
-3. **Phase 3: questions, review loop and gates.** Add the `needs_input` protocol, the review threshold and loop, and the approval gates.
-4. **Phase 4: more sources and outputs.** Jira/GitHub ticket input, PR creation instead of a direct push, a dashboard.
+2. **Phase 2: minimal orchestrator with several adapters (TypeScript).** A CLI command (`factory run --project <path> --ticket <file>`) that runs the stages in order, keeps `state.json`, reads `project.yaml`, and comes with the Claude Code and Codex adapters, selected per stage through `config.yaml`. Stage 08 creates the branch and the PR.
+3. **Phase 3: questions, review loop and gates.** Add the `needs_input` protocol, the review gate and loop, the dispute flow and tie-break, and the approval gates.
+4. **Phase 4: more sources and outputs.** Jira/GitHub ticket input, a dashboard.
 
 ---
 
-## Open decisions (to settle when we get to them)
-- Language for the orchestrator (TypeScript or Python; both work fine).
-- Which agent runs each stage (the initial `config.yaml` mapping).
-- Which sample project and ticket to use for Phase 1.
-- Push straight to main, or branch + PR.
+## Decisions
+The factory is **project-agnostic**: it works on any project passed in as a path (`factory run --project <path> --ticket <file>`). No project is ever hardcoded. When we first test a stage, any small project will do as a throwaway test bed. Choosing it is not a design decision.
+
+**Settled (2026-11-06)**
+- [x] Agent per stage: Codex plans and checks, Claude Code builds (section 1).
+- [x] Orchestrator language: TypeScript / Node (section 1).
+- [x] Git output: branch `ticket-xxx` + PR by default; a project can override it (section 3, stage 08).
+- [x] Per-project settings: auto-detected by stage 01 into `project.yaml`, confirmed by the user (section 2).
+- [x] `.factory/` is committed to the target repo; only temporary files are gitignored (section 2).
+- [x] Review loop: zero failing tests, score ≥ 8/10, max 3 loops, with the right to disagree and a tie-break by the user (section 3).
+
+**Open**
+_None right now._
 
 ## Verification
 - Phase 1 is done when one sample ticket goes through all stages by hand, using at least two different agents, and produces every file in `.factory/tickets/ticket-xxx/`.
