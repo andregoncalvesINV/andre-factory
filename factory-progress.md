@@ -3,6 +3,7 @@
 > **How to resume (any agent):** read `factory-plan.md` first, then this file.
 > Work one step at a time, and only on what the user asks for.
 > At the end of every work session, update this file: move finished items to **Done**, refresh **Next steps**, and add a line to the **Log**.
+> Keep `README.md` (the plain-language summary) up to date too, especially its **Status today** table, whenever a stage or phase is finished.
 
 ## Current phase
 **Phase 1: write the stage prompts and run them by hand.** Not started.
@@ -13,11 +14,13 @@
 - [x] Scaffolded the repo: `stages/*/` (prompt.md + contract.yaml, header line only), empty `orchestrator/` and `adapters/`, `config.yaml` with `adapter: TBD` per stage, `.gitignore`.
 - [x] Installed the `claude` CLI in the terminal (needed by the Phase 2 adapter)
 - [x] Wrote shared rules v1 (`stages/_shared/rules.md`): paths, read-first, allowed outputs, ask vs assume, binding decisions, cite evidence, security, traceability header, status.json
+- [x] Wrote stage 00 Plug (`stages/00-plug/`): connects a project to the factory once, so stages can be started with "Run factory stage <N>"
 
 ## Next steps
-1. **Write `stages/01-context/prompt.md` (+ `contract.yaml`).** It must follow `stages/_shared/rules.md`, and also detect project settings into `project.yaml` and ask the user to confirm them.
-2. Run stage 01 by hand (in Codex) on any small throwaway project to test it (the factory itself stays project-agnostic)
-3. Continue with the next stage prompts, one at a time
+1. **Test stage 00** on `/Users/andregoncalves/Documents/POC_Factory/react-native-project/mobile-factory-app-1` (on `main`), from that project's VS Code window.
+2. Write `stages/01-context/prompt.md` (+ `contract.yaml`). It must follow `stages/_shared/rules.md`, and also detect project settings into `project.yaml` and ask the user to confirm them.
+3. Test stage 01 on the same project ("Run factory stage 01", in Codex).
+4. Continue with the next stage prompts, one at a time.
 
 ## Decisions made
 _Record each one here: date, decision, reason._
@@ -31,6 +34,10 @@ _Record each one here: date, decision, reason._
 
 ## Notes
 - Agent CLIs on this machine: `claude` at `~/.local/bin/claude` (v2.1.319, native installer, independent of the nvm Node version) and `codex` at `~/.local/bin/codex`.
+- **How to run a stage by hand** (details in `factory-plan.md` §1b), from the project's VS Code window:
+  - Once per project: "Read and follow `/Users/andregoncalves/Documents/POC_Factory/andre-factory/stages/00-plug/prompt.md`."
+  - Then: "Run factory stage 01" (or "Run factory stage 02 for ticket 123").
+- Testing uses the user's own projects, on `main`; no dedicated test project or branch.
 
 ## Log
 - 2026-11-06: Repo created. Blueprint agreed: different vendors per stage from the start, so no separate "vendor independence" phase. Plan and progress files created.
@@ -38,3 +45,7 @@ _Record each one here: date, decision, reason._
 - 2026-11-06: The factory stays project-agnostic, so "sample project" was dropped as a decision. Added three new open decisions for plug and play: per-project settings, committing `.factory/` or not, review loop defaults.
 - 2026-11-06: All open decisions settled (language, git output, project settings, `.factory/` committed, review loop with right to disagree). Plan and config updated. Next: stage 01 prompt.
 - 2026-11-06: Claude CLI installed. Shared rules v1 written; the user picked all four extras (ask vs assume, traceability header, cite evidence, security basics). Next: stage 01 prompt.
+- 2026-11-06: Documented how the factory runs on a project in another folder (plan §1b): the agent runs inside the project, the factory folder is read-only. Testing will use the user's own projects.
+- 2026-11-06: Added stage 00 Plug (user's idea): connects a project to the factory once (`.factory/`, `factory.yaml`, Claude read access, "Factory" section in AGENTS.md). Shared rule 4 now covers interactive runs: ask in chat and record answers in `decisions.md`. Testing happens on `main`.
+- 2026-11-06: Made stage 00 vendor-neutral (user: "what if Claude stops existing?"). Core writes only `.factory/` and `AGENTS.md`; agent-specific steps moved to `adapters/<agent>/plug.md` (claude-code, codex). New vendor rule in the plan: vendor-specific things live only in `adapters/`.
+- 2026-11-06: Wrote README.md as a plain-language summary for non-technical readers (what it is, stages, how to start one stage at a time, all-in-one marked as Phase 2, honest status).

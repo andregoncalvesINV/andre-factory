@@ -20,6 +20,8 @@ Three layers, kept strictly apart:
 | **Stage definitions** | One folder per stage: a prompt template (markdown), the list of files it reads, the files it must write. | No |
 | **Agent adapters** | Thin wrappers that say "run this prompt in this folder with this agent" (Claude Code `claude -p`, Codex `codex exec`, Gemini CLI, Aider, or a raw API call). | Yes, but tiny and swappable |
 
+**Vendor rule:** anything specific to one agent lives only in `adapters/<agent>/`. Stages, shared rules and the project's `.factory/` never mention a vendor. Dropping an agent = removing it from `config.yaml` and deleting its adapter folder.
+
 Agents talk to each other **only through markdown/JSON files on disk**. So any agent that can read and write files can do any stage, and swapping vendors only means changing one line of config.
 
 A `config.yaml` maps stage → adapter + model. The current mapping (Codex plans and checks, Claude Code builds):
@@ -43,15 +45,48 @@ The orchestrator is written in **TypeScript / Node**: Claude Code and Codex are 
 
 ---
 
+## 1b. How the factory runs on a project
+
+**Principle:** the agent always runs **inside the target project** (its working directory is the project). The factory folder is only a read-only source of instructions. So everything the agent writes lands in `<project>/.factory/` or in the project's code, and the agent's own sandbox stops it from writing anywhere else (shared rule 3).
+
+**Phase 1: by hand, from the project's VS Code window (Codex or Claude Code panel)**
+1. **Once per project, plug it in (stage 00):**
+   > Read and follow `/Users/andregoncalves/Documents/POC_Factory/andre-factory/stages/00-plug/prompt.md`.
+
+   This creates `.factory/`, records the factory path in `.factory/factory.yaml`, and (after asking) adds a "Factory" section to the project's `AGENTS.md`, an open convention many agents read. Then it runs each agent's small extra step from `adapters/<agent>/plug.md` (e.g. Claude Code's read access and `CLAUDE.md` import).
+2. **From then on, any stage:**
+   > Run factory stage 01.  *(or: Run factory stage 02 for ticket 123)*
+
+   The agent finds the factory through `AGENTS.md` and `.factory/factory.yaml`.
+
+If the project wasn't plugged in, the long form still works: "Read and follow `<factory>/stages/_shared/rules.md`, then `<factory>/stages/<stage>/prompt.md` and its `contract.yaml`. The project is the current folder. Ticket: `<id>` or none."
+
+**Phase 2: orchestrator**
+```bash
+factory run --project <path> --ticket <file>
+```
+1. The orchestrator reads the shared rules, the stage prompt and the contract from its own folder.
+2. It fills in the variables: project path, ticket id, date, stage, agent.
+3. It starts the agent inside the project and passes the **whole prompt as text**, e.g. `codex exec -C <project> "<prompt>"`, or `claude -p "<prompt>"` started in `<project>`.
+
+The agent never needs access to the factory folder, which keeps every adapter simple, vendor-neutral and free of permission prompts.
+
+In Phase 2, stage 00 becomes a deterministic command: `factory plug --project <path>`.
+
+**Requirements for a project:** it's a git repo (stage 08 commits there).
+
+---
+
 ## 2. Folder layout
 
 **The factory repo (this one):**
 ```
 andre-factory/
   orchestrator/          # the CLI (state machine, runner, question handling)
-  adapters/              # claude-code, codex, gemini, aider, raw-api ...
+  adapters/              # one folder per agent: claude-code/, codex/ ... (plug.md now, runner code in Phase 2)
   stages/
     _shared/rules.md     # rules every stage follows (read first): paths, asking, status, security, traceability
+    00-plug/             # connects a project to the factory (once per project)
     01-context/          prompt.md + contract.yaml (inputs/outputs)
     02-requirements/
     03-gameplan/
@@ -105,6 +140,8 @@ git:    { mode: branch-pr }
 ## 3. The pipeline
 
 ```
+[00 plug] (once per project)
+      ↓
 [01 context] (first run, or when it's stale)
       ↓
 [02 requirements] → [03 gameplan] → [04 dev] → [05 tests] → [06 review]
@@ -117,6 +154,7 @@ In a fix loop, 06b sends the work back to **04 development** (not to 03), with t
 
 | Stage | Reads | Writes | Notes |
 |---|---|---|---|
+| 00 Plug | the project's git status, `AGENTS.md`, `config.yaml`, `adapters/*/plug.md` | `.factory/` skeleton, `factory.yaml`, "Factory" section in `AGENTS.md`, plus each agent's extras | Once per project. Asks before touching `AGENTS.md`. Commits nothing |
 | 01 Context | the whole project | `context/*.md` + `project.yaml` | Runs once, then gets updated by stage 07. Detects project settings and asks the user to confirm them |
 | 02 Requirements | ticket + context docs | `01-requirements.md` | Use cases, acceptance criteria, technical requirements |
 | 03 Gameplan | requirements + context | `02-gameplan.md` | Library and approach choices are where most questions come up |

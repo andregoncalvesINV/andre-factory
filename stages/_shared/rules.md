@@ -35,6 +35,7 @@ Write `questions.json`, write `status.json` with `needs_input`, and stop **witho
 ```
 - Always give options and a recommendation with a reason. Never ask an open question with no options.
 - **At most 5 questions per round.** Ask the most important ones first.
+- **Interactive runs (a user is chatting with you, e.g. in Phase 1):** ask the same questions directly in the chat, wait for the answers, record each one in `decisions.md` in the working folder (question, answer, date), then continue the stage. Still write `questions.json` first, so the format gets tested.
 
 ## 5. When to ask vs assume
 - **Ask** (rule 4) for anything hard to reverse: new dependencies, architecture choices, data model or schema changes, security, anything that changes the ticket's scope.
@@ -58,7 +59,7 @@ Markdown, as YAML front matter:
 ```markdown
 ---
 stage: 02-requirements
-agent: codex
+agent: <adapter name from config.yaml>
 model: <model name, if known>
 date: 2026-11-06
 ticket: 123          # "none" for stage 01
@@ -67,7 +68,7 @@ rules: v1
 ```
 JSON, as a `meta` key:
 ```json
-{ "meta": { "stage": "06-code-review", "agent": "codex", "model": "...", "date": "2026-11-06", "ticket": "123", "rules": "v1" }, "...": "..." }
+{ "meta": { "stage": "06-code-review", "agent": "<adapter>", "model": "...", "date": "2026-11-06", "ticket": "123", "rules": "v1" }, "...": "..." }
 ```
 Context docs (`CONTEXT.md` etc.) keep one header, updated by whichever stage last changed them.
 

@@ -1,7 +1,8 @@
 # Which agent (adapter + model) runs each stage. See factory-plan.md section 1.
 # Split: Codex plans and checks, Claude Code builds (see factory-progress.md → Decisions made).
 stages:
-  context:             { adapter: codex }
+  plug:                { adapter: none }   # by hand: any agent; Phase 2: `factory plug` command
+  context:            { adapter: codex }
   requirements:        { adapter: codex }
   gameplan:            { adapter: codex }
   development:         { adapter: claude-code }
