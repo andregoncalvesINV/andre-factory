@@ -1,0 +1,11 @@
+# Which agent (adapter + model) runs each stage. See factory-plan.md section 1.
+stages:
+  context:             { adapter: TBD }
+  requirements:        { adapter: TBD }
+  gameplan:            { adapter: TBD }
+  development:         { adapter: TBD }
+  testing:             { adapter: TBD }
+  code_review:         { adapter: TBD }
+  review_gameplan:     { adapter: TBD }
+  context_update:      { adapter: TBD }
+  commit:              { adapter: none }   # deterministic, no AI
