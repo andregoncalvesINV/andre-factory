@@ -10,10 +10,12 @@
 ## Done
 - [x] Turned the folder into a git repo and pushed it to GitHub (private): https://github.com/andregoncalvesINV/andre-factory
 - [x] Agreed the blueprint (`factory-plan.md`)
-- [x] Scaffolded the repo: `stages/*/` (prompt.md + contract.yaml, header line only), empty `orchestrator/` and `adapters/`, `config.yaml` with `adapter: TBD` per stage, `.gitignore`. Not committed yet.
+- [x] Scaffolded the repo: `stages/*/` (prompt.md + contract.yaml, header line only), empty `orchestrator/` and `adapters/`, `config.yaml` with `adapter: TBD` per stage, `.gitignore`.
+- [x] Installed the `claude` CLI in the terminal (needed by the Phase 2 adapter)
+- [x] Wrote shared rules v1 (`stages/_shared/rules.md`): paths, read-first, allowed outputs, ask vs assume, binding decisions, cite evidence, security, traceability header, status.json
 
 ## Next steps
-1. **Write `stages/01-context/prompt.md` (+ `contract.yaml`).** It must also detect project settings into `project.yaml` and ask the user to confirm them.
+1. **Write `stages/01-context/prompt.md` (+ `contract.yaml`).** It must follow `stages/_shared/rules.md`, and also detect project settings into `project.yaml` and ask the user to confirm them.
 2. Run stage 01 by hand (in Codex) on any small throwaway project to test it (the factory itself stays project-agnostic)
 3. Continue with the next stage prompts, one at a time
 
@@ -28,10 +30,11 @@ _Record each one here: date, decision, reason._
 - 2026-11-06: Review loop: **zero failing tests (hard gate), score ≥ 8/10, max 3 loops.** The development agent can disagree with a finding by leaving a `FACTORY-DISPUTE(<id>)` comment on the code and listing it in the dev summary. The next review must weigh the dispute. A finding still disputed after the second review goes to the user to decide. Reason (user): avoid the agents fighting each other; the tie-break was added so the loop always ends.
 
 ## Notes
-- The `claude` CLI isn't on the terminal PATH (only the VS Code extension's bundled copy exists). That's fine for Phase 1, where stages are run by hand, but the Phase 2 Claude Code adapter needs `claude` installed on the terminal. The `codex` CLI is installed at `~/.local/bin/codex`.
+- Agent CLIs on this machine: `claude` at `~/.local/bin/claude` (v2.1.319, native installer, independent of the nvm Node version) and `codex` at `~/.local/bin/codex`.
 
 ## Log
 - 2026-11-06: Repo created. Blueprint agreed: different vendors per stage from the start, so no separate "vendor independence" phase. Plan and progress files created.
 - 2026-11-06: Repo scaffolded with empty stage folders and placeholder files. Chose to scaffold before settling the open decisions, since nothing in the scaffold depends on them.
 - 2026-11-06: The factory stays project-agnostic, so "sample project" was dropped as a decision. Added three new open decisions for plug and play: per-project settings, committing `.factory/` or not, review loop defaults.
 - 2026-11-06: All open decisions settled (language, git output, project settings, `.factory/` committed, review loop with right to disagree). Plan and config updated. Next: stage 01 prompt.
+- 2026-11-06: Claude CLI installed. Shared rules v1 written; the user picked all four extras (ask vs assume, traceability header, cite evidence, security basics). Next: stage 01 prompt.

@@ -51,6 +51,7 @@ andre-factory/
   orchestrator/          # the CLI (state machine, runner, question handling)
   adapters/              # claude-code, codex, gemini, aider, raw-api ...
   stages/
+    _shared/rules.md     # rules every stage follows (read first): paths, asking, status, security, traceability
     01-context/          prompt.md + contract.yaml (inputs/outputs)
     02-requirements/
     03-gameplan/
@@ -142,15 +143,17 @@ In a fix loop, 06b sends the work back to **04 development** (not to 03), with t
 
 ## 4. Questions and decisions (human in the loop)
 
-Every stage prompt ends with the same rule: *"If you are unsure, or a decision belongs to the user, do not guess. Write `questions.json` and stop."*
+Every stage follows `stages/_shared/rules.md`, which defines this protocol once for all vendors: *"If you are unsure, or a decision belongs to the user, do not guess. Write `questions.json` and stop."* Small, easy-to-undo choices are assumed instead and listed under `## Assumptions`. At most 5 questions per round.
 
 ```json
 { "status": "needs_input",
   "questions": [
     { "id": "q1", "question": "Which local DB for credentials?",
-      "options": ["SQLite (recommended: zero setup)", "LevelDB", "JSON file"],
-      "recommendation": "SQLite" } ] }
+      "options": ["SQLite", "LevelDB", "JSON file"],
+      "recommendation": "SQLite",
+      "why": "Zero setup, single file, mature Node drivers" } ] }
 ```
+Every stage also ends by writing `status.json` (`done` / `needs_input` / `failed`), which is what the orchestrator reads.
 The orchestrator sees `needs_input` and asks you in the terminal (later this could be Slack, a web page, or Jira comments). It writes your answers to `decisions.md` and re-runs the stage. Optional **approval gates** (set in config) stop and ask "OK to continue?" after requirements and after the gameplan.
 
 This protocol works the same with every vendor, because it's just a file.
