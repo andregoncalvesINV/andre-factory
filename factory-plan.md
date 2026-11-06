@@ -24,16 +24,16 @@ Three layers, kept strictly apart:
 
 Agents talk to each other **only through markdown/JSON files on disk**. So any agent that can read and write files can do any stage, and swapping vendors only means changing one line of config.
 
-A `config.yaml` maps stage → adapter + model. The current mapping (Codex plans and checks, Claude Code builds):
+A `config.yaml` maps stage → adapter + model. The current mapping (Codex does context, gameplan, code review and context update; Claude Code does the rest):
 ```yaml
 stages:
   context:         { adapter: codex }
-  requirements:    { adapter: codex }
+  requirements:    { adapter: claude-code }
   gameplan:        { adapter: codex }
   development:     { adapter: claude-code }
-  testing:         { adapter: codex }   # a different vendor from dev = fewer shared blind spots
-  code_review:     { adapter: codex }
-  review_gameplan: { adapter: codex }
+  testing:         { adapter: claude-code }
+  code_review:     { adapter: codex }   # a different vendor from dev = fewer shared blind spots
+  review_gameplan: { adapter: claude-code }
   context_update:  { adapter: codex }
   commit:          { adapter: none }    # deterministic, no AI
 
@@ -213,7 +213,7 @@ Mixing vendors is the default from day one: each stage runs on whichever agent s
 The factory is **project-agnostic**: it works on any project passed in as a path (`factory run --project <path> --ticket <file>`). No project is ever hardcoded. When we first test a stage, any small project will do as a throwaway test bed. Choosing it is not a design decision.
 
 **Settled (2026-11-06)**
-- [x] Agent per stage: Codex plans and checks, Claude Code builds (section 1).
+- [x] Agent per stage: Codex does context, gameplan, code review and context update; Claude Code does the rest (section 1). Updated 2026-11-06.
 - [x] Orchestrator language: TypeScript / Node (section 1).
 - [x] Git output: branch `ticket-xxx` + PR by default; a project can override it (section 3, stage 08).
 - [x] Per-project settings: auto-detected by stage 01 into `project.yaml`, confirmed by the user (section 2).

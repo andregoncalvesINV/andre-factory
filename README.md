@@ -30,10 +30,10 @@ Three ideas make it different:
 |---|---|---|---|---|
 | 00 | **Plug** | Connects a project to the factory. Done once per project. | any agent | a `.factory/` folder in the project |
 | 01 | **Context** | Reads the whole project and writes down what it is, how it's built and its coding style. | Codex | context documents + project settings |
-| 02 | **Requirements** | Reads the ticket and works out what exactly needs to be done. | Codex | a requirements file |
+| 02 | **Requirements** | Reads the ticket and works out what exactly needs to be done. | Claude Code | a requirements file |
 | 03 | **Gameplan** | Decides *how* to build it: approach, tools, steps. | Codex | a technical plan |
 | 04 | **Development** | Writes the code. | Claude Code | the code + a summary of what was done |
-| 05 | **Testing** | Writes tests, including tests that try to break the code. All tests must pass. | Codex | tests + a test report |
+| 05 | **Testing** | Writes tests, including tests that try to break the code. All tests must pass. | Claude Code | tests + a test report |
 | 06 | **Code review** | A different AI checks the work and gives it a score. Below 8/10 goes back for fixes (at most 3 times). | Codex | a review with a score |
 | 07 | **Docs update** | Updates the project's context documents with what changed. | Codex | a changelog entry |
 | 08 | **Commit** | Saves the work on its own branch and opens a pull request for a person to approve. | no AI needed | a pull request |

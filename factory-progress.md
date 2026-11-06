@@ -25,7 +25,8 @@
 ## Decisions made
 _Record each one here: date, decision, reason._
 - 2026-11-06: Stage 07 updates all three context docs (CONTEXT, ARCHITECTURE, CONVENTIONS), not just ARCHITECTURE. Its changelog file is `06-domain-arch-conv-diff.md`. Reason: a new domain entity or a change in conventions has to be tracked too.
-- 2026-11-06: Agent per stage: **Codex plans and checks, Claude Code builds.** Codex does context, requirements, gameplan, testing, code review, review gameplan and context update. Claude Code does development only. Commit needs no AI. Reason: the code is always tested and reviewed by a different vendor than the one that wrote it. Set in `config.yaml`.
+- 2026-11-06: Agent per stage: **Codex plans and checks, Claude Code builds.** Codex does context, requirements, gameplan, testing, code review, review gameplan and context update. Claude Code does development only. Commit needs no AI. Reason: the code is always tested and reviewed by a different vendor than the one that wrote it. Set in `config.yaml`. *(Superseded below.)*
+- 2026-11-06: Agent per stage changed (user's choice): **Codex does context, gameplan, code review and context update; Claude Code does requirements, development, testing and review gameplan.** Code review stays on a different vendor from development, so the independent check is kept. Tests are now written by the same vendor as the code.
 - 2026-11-06: Orchestrator language: **TypeScript / Node**. Reason: Claude Code and Codex are both installed through npm, so Node is already on any machine that runs them.
 - 2026-11-06: Git output: **branch `ticket-xxx` + PR** by default, overridable per project. Reason: the safest choice for team repos; a human merges.
 - 2026-11-06: Per-project settings: **stage 01 auto-detects them into `<project>/.factory/project.yaml`**, and the user confirms. Reason: plug and play with no manual setup, but still predictable.
@@ -49,3 +50,5 @@ _Record each one here: date, decision, reason._
 - 2026-11-06: Added stage 00 Plug (user's idea): connects a project to the factory once (`.factory/`, `factory.yaml`, Claude read access, "Factory" section in AGENTS.md). Shared rule 4 now covers interactive runs: ask in chat and record answers in `decisions.md`. Testing happens on `main`.
 - 2026-11-06: Made stage 00 vendor-neutral (user: "what if Claude stops existing?"). Core writes only `.factory/` and `AGENTS.md`; agent-specific steps moved to `adapters/<agent>/plug.md` (claude-code, codex). New vendor rule in the plan: vendor-specific things live only in `adapters/`.
 - 2026-11-06: Wrote README.md as a plain-language summary for non-technical readers (what it is, stages, how to start one stage at a time, all-in-one marked as Phase 2, honest status).
+- 2026-11-06: Moved requirements, testing, review gameplan and context update to Claude Code (config, plan, README updated).
+- 2026-11-06: Context update moved back to Codex.
