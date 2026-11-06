@@ -1,7 +1,7 @@
 # Which agent (adapter + model) runs each stage. See factory-plan.md section 1.
 # Split: Codex does context, gameplan, code review and context update; Claude Code does the rest (see factory-progress.md → Decisions made).
 stages:
-  plug:                { adapter: none }   # by hand: any agent; Phase 2: `factory plug` command
+  plug:                { adapter: codex }  # any agent works
   context:             { adapter: codex }
   requirements:        { adapter: claude-code }
   gameplan:            { adapter: codex }

@@ -1,0 +1,23 @@
+{
+  "name": "andre-factory",
+  "version": "0.1.0",
+  "description": "Orchestrator for andre-factory: runs factory stages with the agent set in config.yaml",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "factory": "./src/cli.ts"
+  },
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
+  }
+}

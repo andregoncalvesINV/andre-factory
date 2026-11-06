@@ -6,7 +6,7 @@
 > Keep `README.md` (the plain-language summary) up to date too, especially its **Status today** table, whenever a stage or phase is finished.
 
 ## Current phase
-**Phase 1: write the stage prompts and run them by hand.** Not started.
+**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; the `factory` command (v1) is built and runs one stage at a time.
 
 ## Done
 - [x] Turned the folder into a git repo and pushed it to GitHub (private): https://github.com/andregoncalvesINV/andre-factory
@@ -16,11 +16,14 @@
 - [x] Wrote shared rules v1 (`stages/_shared/rules.md`): paths, read-first, allowed outputs, ask vs assume, binding decisions, cite evidence, security, traceability header, status.json
 - [x] Wrote stage 00 Plug (`stages/00-plug/`): connects a project to the factory once, so stages can be started with "Run factory stage <N>"
 
+- [x] Tested stage 00 by hand on mobile-factory-app-1 (with Claude Code): all outputs correct, question asked before touching AGENTS.md
+- [x] Built the orchestrator v1 (`orchestrator/`): `factory run` (whole line from 00, stops at the first unwritten or failed stage), `factory stage <N>`, `--dry-run` option; adapters `adapters/codex/run.ts` and `adapters/claude-code/run.ts`; terminal Q&A loop; type-checks; linked with `npm link`
+
 ## Next steps
-1. **Test stage 00** on `/Users/andregoncalves/Documents/POC_Factory/react-native-project/mobile-factory-app-1` (on `main`), from that project's VS Code window.
-2. Write `stages/01-context/prompt.md` (+ `contract.yaml`). It must follow `stages/_shared/rules.md`, and also detect project settings into `project.yaml` and ask the user to confirm them.
-3. Test stage 01 on the same project ("Run factory stage 01", in Codex).
-4. Continue with the next stage prompts, one at a time.
+1. **First real run of `factory run`** (Codex; it will do stage 00, then stop at 01) on a fresh copy of a project, to check the orchestrator end to end, including the question round. Only dry runs have been done so far.
+2. Write `stages/01-context/prompt.md` (+ `contract.yaml`): detects project settings into `project.yaml` and asks the user to confirm them.
+3. Test stage 01 with `factory stage 1 --project …`.
+4. Continue with the next stage prompts, one at a time. `factory run` (whole pipeline) once they exist.
 
 ## Decisions made
 _Record each one here: date, decision, reason._
@@ -38,6 +41,9 @@ _Record each one here: date, decision, reason._
 - **How to run a stage by hand** (details in `factory-plan.md` §1b), from the project's VS Code window:
   - Once per project: "Read and follow `/Users/andregoncalves/Documents/POC_Factory/andre-factory/stages/00-plug/prompt.md`."
   - Then: "Run factory stage 01" (or "Run factory stage 02 for ticket 123").
+- **`factory` command:** installed via `npm link` into the nvm Node v26.13.0 global bin; re-run `npm link` in `orchestrator/` after switching Node versions. Node ≥ 23.6 runs the `.ts` files directly (no build step); `npm run typecheck` checks types.
+- Claude Code adapter allows file edits plus read-only git commands only (`git status`, `rev-parse`, `check-ignore`). Stages that run tests will need more shell access, added in `adapters/claude-code/run.ts`.
+- Not yet: `project.yaml` overrides of `config.yaml`, `state.json`, the review loop, and `factory run`.
 - Testing uses the user's own projects, on `main`; no dedicated test project or branch.
 
 ## Log
@@ -52,3 +58,5 @@ _Record each one here: date, decision, reason._
 - 2026-11-06: Wrote README.md as a plain-language summary for non-technical readers (what it is, stages, how to start one stage at a time, all-in-one marked as Phase 2, honest status).
 - 2026-11-06: Moved requirements, testing, review gameplan and context update to Claude Code (config, plan, README updated).
 - 2026-11-06: Context update moved back to Codex.
+- 2026-11-06: Built orchestrator v1 (user chose this over writing stage 01 first): `factory plug` / `factory stage <N>` / `--dry-run`, per-agent `adapters/<agent>/run.ts`, terminal Q&A loop. `plug` now uses codex in config.yaml. Verified with type-check and dry runs; no real agent run yet.
+- 2026-11-06: Cut the orchestrator to 2 commands (user): `factory run` (whole line from 00) and `factory stage <N>`; `factory plug` removed, `--dry-run` kept as an option.

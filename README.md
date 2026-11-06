@@ -57,7 +57,30 @@ Three ideas make it different:
 
 ## Start here: one stage at a time
 
-This is how the factory is used today: you start each stage yourself by typing one sentence to an AI agent.
+There are two ways to run a stage. Both do the same thing.
+
+### Option A: the `factory` command (recommended)
+
+You type one command in a terminal. The factory picks the right AI agent for the stage, runs it in the background, and asks you any questions right there in the terminal.
+
+**One-time setup** (in a terminal, inside this factory folder):
+```bash
+cd orchestrator
+npm install
+npm link
+```
+After this, `factory` works in any terminal. (If you switch Node versions, run `npm link` again.)
+
+**Use it:**
+```bash
+factory run   --project /path/to/your-project     # run everything, starting from stage 00
+factory stage 1 --project /path/to/your-project   # run just one stage (here: 01)
+```
+Add `--dry-run` to see what would be sent to the agent without running anything.
+
+### Option B: by hand, in the agent's chat
+
+You start each stage yourself by typing one sentence to an AI agent.
 
 **Step 1: open your project.** Open the project you want to work on in VS Code (in its own window, not this factory folder).
 
@@ -101,7 +124,8 @@ factory run --project /path/to/your-project --ticket my-ticket.txt
 | Shared rules that all agents follow | ✅ Done |
 | Stage 00: Plug | ✅ Ready to try |
 | Stages 01–08 | ⏳ Empty placeholders, being written one by one |
-| One-command run (`factory run`) | ⏳ Not started (Phase 2) |
+| `factory` command: one stage at a time | ✅ Built (stage 00 ready to try with it) |
+| `factory run`: whole line in one go | ⏳ Not started (needs stages 01–08 first) |
 | Tickets from Jira / GitHub, dashboard | ⏳ Later (Phase 4) |
 
 ---

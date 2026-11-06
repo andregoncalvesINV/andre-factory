@@ -61,17 +61,20 @@ The orchestrator is written in **TypeScript / Node**: Claude Code and Codex are 
 
 If the project wasn't plugged in, the long form still works: "Read and follow `<factory>/stages/_shared/rules.md`, then `<factory>/stages/<stage>/prompt.md` and its `contract.yaml`. The project is the current folder. Ticket: `<id>` or none."
 
-**Phase 2: orchestrator**
+**Orchestrator: the `factory` command (v1 built)**
 ```bash
-factory run --project <path> --ticket <file>
+factory run   --project <path> [--ticket <file>]      # whole line from stage 00 (skips 00 if already plugged in)
+factory stage <N> --project <path> [--ticket <file>]   # one stage
+# add --dry-run to either: show prompt + agent command, run nothing
 ```
-1. The orchestrator reads the shared rules, the stage prompt and the contract from its own folder.
-2. It fills in the variables: project path, ticket id, date, stage, agent.
-3. It starts the agent inside the project and passes the **whole prompt as text**, e.g. `codex exec -C <project> "<prompt>"`, or `claude -p "<prompt>"` started in `<project>`.
+1. The orchestrator reads `config.yaml` to find the agent for the stage.
+2. It builds the **whole prompt as text**: values (project, ticket, date, agent) + shared rules + contract + stage prompt + any factory files the contract lists under `inputs.factory`.
+3. It starts the agent inside the project through `adapters/<agent>/run.ts` (`codex exec --cd <project> --sandbox workspace-write -- <prompt>`, or `claude -p <prompt> --permission-mode acceptEdits` in `<project>`).
+4. It reads `status.json`. On `needs_input` it asks the questions in the terminal, appends the answers to `decisions.md` and runs the stage again (max 5 rounds).
 
-The agent never needs access to the factory folder, which keeps every adapter simple, vendor-neutral and free of permission prompts.
+`factory run` does this for 00 → 08 in order and stops at the first stage that fails or isn't written yet (06b is skipped until the review loop exists).
 
-In Phase 2, stage 00 becomes a deterministic command: `factory plug --project <path>`.
+The agent never needs access to the factory folder, which keeps every adapter simple, vendor-neutral and free of permission prompts. An adapter is one small file that only turns a request into a command line; a new agent = a new `adapters/<agent>/run.ts` (+ `plug.md`).
 
 **Requirements for a project:** it's a git repo (stage 08 commits there).
 
@@ -82,7 +85,7 @@ In Phase 2, stage 00 becomes a deterministic command: `factory plug --project <p
 **The factory repo (this one):**
 ```
 andre-factory/
-  orchestrator/          # the CLI (state machine, runner, question handling)
+  orchestrator/          # the `factory` CLI (TypeScript, run directly by Node ≥ 23.6): src/cli.ts, run.ts, prompt.ts, questions.ts, stage.ts, config.ts
   adapters/              # one folder per agent: claude-code/, codex/ ... (plug.md now, runner code in Phase 2)
   stages/
     _shared/rules.md     # rules every stage follows (read first): paths, asking, status, security, traceability
