@@ -30,6 +30,14 @@ export function mainLine(): string[] {
     .map((d) => d.slice(0, d.indexOf('-')));
 }
 
+// The main line as folder names and config keys, e.g. { dir: "01-context", key: "context" }.
+export function mainLineDirs(): { dir: string; key: string }[] {
+  return readdirSync(STAGES_DIR)
+    .filter((d) => /^\d+-/.test(d))
+    .sort()
+    .map((dir) => ({ dir, key: dir.replace(/^\d+[a-z]?-/, '').replaceAll('-', '_') }));
+}
+
 // "1" → "01", "6b" → "06b", "00" → "00"
 function normalise(n: string): string {
   const match = /^(\d+)([a-z]?)$/i.exec(n.trim());
