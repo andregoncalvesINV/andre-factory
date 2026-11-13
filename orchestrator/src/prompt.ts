@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { FACTORY_ROOT } from './config.ts';
+import { FACTORY_ROOT, skillFile } from './config.ts';
 import { readRules, type Stage } from './stage.ts';
 
 export type PromptValues = {
@@ -11,6 +11,8 @@ export type PromptValues = {
   agent: string;
   model?: string;
   agentsInUse: string[];  // expands <agent> in contract.inputs.factory
+  skills: string[];       // names of skills/<name>.md to include
+  nativeSkills: string[]; // skills built into the agent; only named in the prompt
 };
 
 // Factory files the contract asks for (e.g. config.yaml, adapters/<agent>/plug.md), so the agent
@@ -32,6 +34,7 @@ export function buildPrompt(v: PromptValues): string {
   const files = factoryFiles(v.stage, v.agentsInUse).map((p) =>
     block(`<factory>/${p}`, readFileSync(path.join(FACTORY_ROOT, p), 'utf8')),
   );
+  const skills = v.skills.map((name) => block(`<factory>/skills/${name}.md`, readFileSync(skillFile(name), 'utf8')));
 
   return [
     `# andre-factory: stage ${v.stage.dir}`,
@@ -57,6 +60,10 @@ export function buildPrompt(v: PromptValues): string {
     block(`<factory>/stages/${v.stage.dir}/contract.yaml`, v.stage.contractText),
     '',
     block(`<factory>/stages/${v.stage.dir}/prompt.md`, v.stage.prompt),
+    ...(skills.length ? ['', '## Skills for this stage (apply them while doing the stage)', ...skills] : []),
+    ...(v.nativeSkills.length
+      ? ['', `Also use these skills you have available, where they apply: ${v.nativeSkills.join(', ')}.`]
+      : []),
     ...(files.length ? ['', '## Factory files referenced above', ...files] : []),
     '',
   ].join('\n');

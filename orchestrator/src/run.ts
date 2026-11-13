@@ -1,11 +1,11 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { FACTORY_ROOT, loadConfig, usedAdapters } from './config.ts';
+import { activeOption, FACTORY_ROOT, loadConfig, stageSkills, usedAdapters } from './config.ts';
 import { buildPrompt } from './prompt.ts';
 import { askQuestions, type Question } from './questions.ts';
 import { mainLine, prepareTicket, resolveStage, StageNotWrittenError } from './stage.ts';
-import type { Adapter, AgentCommand } from './types.ts';
+import type { Adapter, AgentCommand, Plug } from './types.ts';
 
 const MAX_ROUNDS = 5; // question rounds before giving up
 
@@ -32,6 +32,17 @@ function start(cmd: AgentCommand): Promise<number> {
   });
 }
 
+// After stage 00: each listed agent's own setup (adapters/<agent>/plug.ts), if it has any.
+async function plugAgents(agents: string[], project: string): Promise<void> {
+  for (const name of agents) {
+    const file = path.join(FACTORY_ROOT, 'adapters', name, 'plug.ts');
+    if (!existsSync(file)) continue;
+    const { changed, notes } = ((await import(file)) as Plug).plug({ project, factory: FACTORY_ROOT });
+    console.log(`  ${name} setup: ${changed.length ? changed.join(', ') : 'nothing to change'}`);
+    notes.forEach((note) => console.log(`  ! ${note}`));
+  }
+}
+
 function readJson<T>(file: string): T | undefined {
   return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as T) : undefined;
 }
@@ -43,8 +54,9 @@ export async function runStage(opts: RunOptions): Promise<number> {
 
   const config = loadConfig();
   const stage = resolveStage(opts.stage);
-  const stageConfig = config.stages[stage.key];
-  if (!stageConfig || stageConfig.adapter === 'none') {
+  if (!config.stages[stage.key]) throw new Error(`No entry for stage ${stage.dir} in config.yaml (stages.${stage.key}).`);
+  const stageConfig = activeOption(config, stage.key);
+  if (stageConfig.adapter === 'none') {
     throw new Error(`No agent set for stage ${stage.dir} (config.yaml → stages.${stage.key}).`);
   }
 
@@ -63,6 +75,7 @@ export async function runStage(opts: RunOptions): Promise<number> {
   }
 
   const adapter = await loadAdapter(stageConfig.adapter);
+  const skills = stageSkills(stageConfig, project);
   const statusFile = path.join(workingFolder, 'status.json');
   const questionsFile = path.join(workingFolder, 'questions.json');
 
@@ -75,6 +88,8 @@ export async function runStage(opts: RunOptions): Promise<number> {
       agent: stageConfig.adapter,
       model: stageConfig.model,
       agentsInUse: usedAdapters(config),
+      skills,
+      nativeSkills: stageConfig.nativeSkills ?? [],
     });
     const cmd = adapter.command({ prompt, project, factory: FACTORY_ROOT, model: stageConfig.model });
 
@@ -98,6 +113,7 @@ export async function runStage(opts: RunOptions): Promise<number> {
     }
     if (status.status === 'done') {
       console.log(`\n✓ Stage ${stage.dir} done: ${status.summary ?? ''}`);
+      if (stage.key === 'plug') await plugAgents(usedAdapters(config), project);
       return 0;
     }
     if (status.status === 'failed') {

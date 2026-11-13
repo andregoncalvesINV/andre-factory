@@ -49,13 +49,9 @@ First read `<factory>/stages/_shared/rules.md` and follow it. This stage's input
    3. Read and follow `<factory_path>/stages/<N>-*/prompt.md` and its `contract.yaml`.
    The project is this folder. If no ticket is given, ask for it (stages 02 and later need one).
    ```
-   `AGENTS.md` is an open convention read by many agents. Don't write to any vendor-specific file here.
+   `AGENTS.md` is an open convention read by many agents. Don't write to any vendor-specific file: any per-agent setup is done outside this stage.
 
-5. **Run the agent extras.** Some agents need a small extra step to find `AGENTS.md` or read the factory folder. Those steps live in the adapters, never in this prompt:
-   - Read `<factory>/config.yaml` and collect every distinct `adapter` value under `stages`, ignoring `none`.
-   - For each one, if `<factory>/adapters/<adapter>/plug.md` exists, read and follow it. If it doesn't exist, skip it and mention that in your summary.
-
-6. **Finish.** Write `.factory/status.json` (rule 10). In the summary, list every file you created or changed.
+5. **Finish.** Write `.factory/status.json` (rule 10). In the summary, list every file you created or changed.
 
 ## Don't
 - Don't analyse the code. That's stage 01.

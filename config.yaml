@@ -1,16 +1,35 @@
-# Which agent (adapter + model) runs each stage. See factory-plan.md section 1.
+# Which agent runs each stage, with which model and skills. See factory-plan.md section 1.
 # Split: Codex does context, gameplan, code review and context update; Claude Code does the rest (see factory-progress.md → Decisions made).
+#
+# Each stage is a list of options. Exactly one has isActive: true; flip it to switch or compare agents.
+#   adapter:      the agent (a folder in adapters/), or "none"
+#   model:        optional; passed to the agent as-is (e.g. "opus" for claude-code). Left out = the agent's default.
+#   skills:       optional; ours: names of files in skills/ (without .md), pasted into that stage's prompt (any agent)
+#   nativeSkills: optional; built into this option's agent (e.g. a Claude Code plugin); must already be installed for it
+#   isActive:     true for the option that runs
+# A project can add skills for every stage in <project>/.factory/project.yaml (skills: [expo]).
 stages:
-  plug:                { adapter: codex }  # any agent works
-  context:             { adapter: codex }
-  requirements:        { adapter: claude-code }
-  gameplan:            { adapter: codex }
-  development:         { adapter: claude-code }
-  testing:             { adapter: claude-code }
-  code_review:         { adapter: codex }
-  review_gameplan:     { adapter: claude-code }
-  context_update:      { adapter: codex }
-  commit:              { adapter: none }   # deterministic, no AI
+  plug:                                         # any agent works
+    - { adapter: codex, isActive: true }
+  context:
+    - { adapter: codex, isActive: true }
+    - { adapter: claude-code, isActive: false }  # alternative, for comparing
+  requirements:
+    - { adapter: claude-code, isActive: true }
+  gameplan:
+    - { adapter: codex, isActive: true }
+  development:
+    - { adapter: claude-code, skills: [clean-code], isActive: true }
+  testing:
+    - { adapter: claude-code, isActive: true }
+  code_review:
+    - { adapter: codex, skills: [clean-code], isActive: true }
+  review_gameplan:
+    - { adapter: claude-code, isActive: true }
+  context_update:
+    - { adapter: codex, isActive: true }
+  commit:                                       # deterministic, no AI
+    - { adapter: none, isActive: true }
 
 # Defaults. A project can override them in <project>/.factory/project.yaml.
 review:

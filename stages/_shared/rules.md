@@ -3,6 +3,8 @@
 These rules apply to every stage, whichever agent runs it. Read them before the stage prompt.
 If they clash with the stage prompt, the stage prompt decides *what* to do and these rules decide *how*.
 
+<!-- For whoever writes stages: a stage prompt says only what to do. Never name an agent, model, skill or config.yaml in it; the orchestrator adds those. -->
+
 ## 1. Where things are
 - **Project root:** given to you as `<project>`. Factory files live in `<project>/.factory/`.
 - **Context:** `.factory/context/CONTEXT.md`, `ARCHITECTURE.md`, `CONVENTIONS.md`
@@ -59,7 +61,7 @@ Markdown, as YAML front matter:
 ```markdown
 ---
 stage: 02-requirements
-agent: <adapter name from config.yaml>
+agent: <your agent name, from the run values>
 model: <model name, if known>
 date: 2026-11-06
 ticket: 123          # "none" for stage 01

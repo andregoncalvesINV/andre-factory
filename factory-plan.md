@@ -20,26 +20,29 @@ Three layers, kept strictly apart:
 | **Stage definitions** | One folder per stage: a prompt template (markdown), the list of files it reads, the files it must write. | No |
 | **Agent adapters** | Thin wrappers that say "run this prompt in this folder with this agent" (Claude Code `claude -p`, Codex `codex exec`, Gemini CLI, Aider, or a raw API call). | Yes, but tiny and swappable |
 
+**Models and skills per stage:** `model` is passed to the agent as-is. Two kinds of skills: `skills` are ours, files in `skills/` whose text the orchestrator adds to the prompt, so they work with any agent (a project can add more in `.factory/project.yaml`). `nativeSkills` are built into that option's agent (e.g. a Claude Code plugin); the orchestrator only names them in the prompt, and they must already be installed for that agent.
+
+**Stage prompts say only *what* to do.** The final prompt is composed by the orchestrator: shared rules + stage prompt + skills, sent to the active agent and model from `config.yaml`. A stage prompt never names an agent, a model, a skill or `config.yaml`.
+
 **Vendor rule:** anything specific to one agent lives only in `adapters/<agent>/`. Stages, shared rules and the project's `.factory/` never mention a vendor. Dropping an agent = removing it from `config.yaml` and deleting its adapter folder.
 
 Agents talk to each other **only through markdown/JSON files on disk**. So any agent that can read and write files can do any stage, and swapping vendors only means changing one line of config.
 
-A `config.yaml` maps stage → adapter + model. The current mapping (Codex does context, gameplan, code review and context update; Claude Code does the rest):
+A `config.yaml` maps each stage to a **list of options**; exactly one has `isActive: true`. Flip it to switch or compare agents:
 ```yaml
 stages:
-  context:         { adapter: codex }
-  requirements:    { adapter: claude-code }
-  gameplan:        { adapter: codex }
-  development:     { adapter: claude-code }
-  testing:         { adapter: claude-code }
-  code_review:     { adapter: codex }   # a different vendor from dev = fewer shared blind spots
-  review_gameplan: { adapter: claude-code }
-  context_update:  { adapter: codex }
-  commit:          { adapter: none }    # deterministic, no AI
+  context:
+    - { adapter: codex, isActive: true }
+    - { adapter: claude-code, model: opus, isActive: false }   # alternative, for comparing
+  development:
+    - { adapter: claude-code, skills: [clean-code], isActive: true }
+  commit:
+    - { adapter: none, isActive: true }                        # deterministic, no AI
 
 review: { threshold: 8, max_loops: 3 }  # defaults, a project can override them in project.yaml
 git:    { mode: branch-pr }             # branch ticket-xxx + pull request
 ```
+Zero or two active options in a stage is an error. Stage 00 sets up every agent listed, active or not, so switching never needs a re-plug.
 
 The orchestrator is written in **TypeScript / Node**: Claude Code and Codex are both installed through npm, so Node is already on every machine that runs these agents.
 
@@ -53,7 +56,7 @@ The orchestrator is written in **TypeScript / Node**: Claude Code and Codex are 
 1. **Once per project, plug it in (stage 00):**
    > Read and follow `/Users/andregoncalves/Documents/POC_Factory/andre-factory/stages/00-plug/prompt.md`.
 
-   This creates `.factory/`, records the factory path in `.factory/factory.yaml`, and (after asking) adds a "Factory" section to the project's `AGENTS.md`, an open convention many agents read. Then it runs each agent's small extra step from `adapters/<agent>/plug.md` (e.g. Claude Code's read access and `CLAUDE.md` import).
+   This creates `.factory/`, records the factory path in `.factory/factory.yaml`, and (after asking) adds a "Factory" section to the project's `AGENTS.md`, an open convention many agents read. Afterwards the orchestrator runs each listed agent's own setup code, `adapters/<agent>/plug.ts` (e.g. Claude Code's read access and `CLAUDE.md` import).
 2. **From then on, any stage:**
    > Run factory stage 01.  *(or: Run factory stage 02 for ticket 123)*
 
@@ -74,7 +77,7 @@ factory stage <N> --project <path> [--ticket <file>]   # one stage
 
 `factory run` does this for 00 → 08 in order and stops at the first stage that fails or isn't written yet (06b is skipped until the review loop exists).
 
-The agent never needs access to the factory folder, which keeps every adapter simple, vendor-neutral and free of permission prompts. An adapter is one small file that only turns a request into a command line; a new agent = a new `adapters/<agent>/run.ts` (+ `plug.md`).
+The agent never needs access to the factory folder, which keeps every adapter simple, vendor-neutral and free of permission prompts. An adapter is one small file that only turns a request into a command line; a new agent = a new `adapters/<agent>/run.ts` (+ an optional `plug.ts` for one-time project setup).
 
 **Requirements for a project:** it's a git repo (stage 08 commits there).
 
@@ -86,7 +89,7 @@ The agent never needs access to the factory folder, which keeps every adapter si
 ```
 andre-factory/
   orchestrator/          # the `factory` CLI (TypeScript, run directly by Node ≥ 23.6): src/cli.ts, run.ts, prompt.ts, questions.ts, stage.ts, config.ts
-  adapters/              # one folder per agent: claude-code/, codex/ ... (plug.md now, runner code in Phase 2)
+  adapters/              # one folder per agent: claude-code/, codex/ ... (run.ts: how to start it; optional plug.ts: one-time project setup)
   stages/
     _shared/rules.md     # rules every stage follows (read first): paths, asking, status, security, traceability
     00-plug/             # connects a project to the factory (once per project)
@@ -99,6 +102,7 @@ andre-factory/
     06b-review-gameplan/
     07-context-update/
     08-commit/
+  skills/                # vendor-neutral know-how files (e.g. clean-code.md), added to a stage's prompt when listed
   config.yaml
 ```
 
@@ -157,7 +161,7 @@ In a fix loop, 06b sends the work back to **04 development** (not to 03), with t
 
 | Stage | Reads | Writes | Notes |
 |---|---|---|---|
-| 00 Plug | the project's git status, `AGENTS.md`, `config.yaml`, `adapters/*/plug.md` | `.factory/` skeleton, `factory.yaml`, "Factory" section in `AGENTS.md`, plus each agent's extras | Once per project. Asks before touching `AGENTS.md`. Commits nothing |
+| 00 Plug | the project's git status, `AGENTS.md` | `.factory/` skeleton, `factory.yaml`, "Factory" section in `AGENTS.md`. Then the orchestrator runs each agent's `plug.ts` | Once per project. Asks before touching `AGENTS.md`. Commits nothing |
 | 01 Context | the whole project | `context/*.md` + `project.yaml` | Runs once, then gets updated by stage 07. Detects project settings and asks the user to confirm them |
 | 02 Requirements | ticket + context docs | `01-requirements.md` | Use cases, acceptance criteria, technical requirements |
 | 03 Gameplan | requirements + context | `02-gameplan.md` | Library and approach choices are where most questions come up |

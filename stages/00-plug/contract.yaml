@@ -1,5 +1,6 @@
 # Stage 00: Plug (inputs/outputs contract)
 # Connects a project to the factory. Run once per project.
+# Per-agent setup (e.g. agent settings files) is done by the orchestrator afterwards, not by this stage.
 stage: 00-plug
 ticket: none
 working_folder: .factory/
@@ -8,9 +9,6 @@ inputs:
   required: []                      # works on a bare project
   optional:
     - AGENTS.md                     # gets a "Factory" section (after asking)
-  factory:                          # read from the factory folder
-    - config.yaml                   # which agents are used
-    - adapters/<agent>/plug.md      # agent extras, one per agent in config.yaml
 
 outputs:
   - .factory/factory.yaml
@@ -20,4 +18,3 @@ outputs:
   - AGENTS.md                       # only if the user agrees
   - .factory/decisions.md           # only if a question was asked
   - .factory/status.json
-  # plus whatever each adapters/<agent>/plug.md lists under "Files this may create or change"

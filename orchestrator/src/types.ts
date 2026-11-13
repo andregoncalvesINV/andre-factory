@@ -17,3 +17,8 @@ export type AgentCommand = {
 export type Adapter = {
   command(request: AgentRequest): AgentCommand;
 };
+
+// Optional adapters/<agent>/plug.ts: one-time project setup for that agent, run after stage 00.
+export type PlugRequest = { project: string; factory: string };
+export type PlugResult = { changed: string[]; notes: string[] };
+export type Plug = { plug(request: PlugRequest): PlugResult };
