@@ -97,6 +97,8 @@ export async function runStage(opts: RunOptions): Promise<RunResult> {
 
 async function runOne(opts: RunOptions): Promise<{ code: number; stats?: StageStats }> {
   const { reporter } = opts;
+
+  // ── 1. CHECK: project folder, stage files, config entry, active agent ──
   const project = path.resolve(opts.project);
   if (!existsSync(project)) throw new Error(`Project folder not found: ${project}`);
 
@@ -108,6 +110,8 @@ async function runOne(opts: RunOptions): Promise<{ code: number; stats?: StageSt
     throw new Error(`No agent set for stage ${stage.dir} (config.yaml → stages.${stage.key}).`);
   }
 
+  // ── 2. PREPARE: ticket + working folder, adapter, skills, log file ──
+  // Stages with a ticket work in .factory/tickets/ticket-<id>/; the rest in .factory/.
   let ticketId = 'none';
   let workingFolder = path.join(project, '.factory');
   if (stage.needsTicket) {
@@ -153,7 +157,9 @@ async function runOne(opts: RunOptions): Promise<{ code: number; stats?: StageSt
     return { code, stats };
   };
 
+  // ── 3. RUN: one round per agent run; a "needs_input" answer starts another round ──
   for (let round = 1; round <= MAX_ROUNDS; round++) {
+    // Build the prompt and the agent command (rebuilt each round).
     const prompt = buildPrompt({
       stage,
       project,
@@ -179,6 +185,7 @@ async function runOne(opts: RunOptions): Promise<{ code: number; stats?: StageSt
       return { code: 0 };
     }
 
+    // Clean slate for this round: folders exist, old status/questions removed.
     mkdirSync(workingFolder, { recursive: true });
     mkdirSync(logDir, { recursive: true });
     rmSync(statusFile, { force: true });
@@ -193,11 +200,14 @@ async function runOne(opts: RunOptions): Promise<{ code: number; stats?: StageSt
       logFile: path.relative(project, logFile),
     });
 
+    // Start the agent and wait for it to exit.
     const agentStart = Date.now();
     const run = await start(cmd, logFile, reporter, adapter.parseLine);
     agentMs += Date.now() - agentStart;
     rounds = round;
     if (run.usage) usage = addUsage(usage ?? emptyUsage(), run.usage);
+
+    // Read the result the agent left in status.json: done | failed | needs_input.
     const status = readJson<{ status: string; summary?: string }>(statusFile);
 
     if (!status) {

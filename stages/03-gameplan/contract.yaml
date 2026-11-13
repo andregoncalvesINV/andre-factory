@@ -1,1 +1,29 @@
 # Stage 03: Gameplan (inputs/outputs contract)
+# Turn agreed requirements and project context into an implementation plan.
+# <ticket> = .factory/tickets/ticket-<id>/ (the working folder)
+stage: 03-gameplan
+ticket: required
+working_folder: .factory/tickets/ticket-<id>/
+
+inputs:
+  required:
+    - .factory/factory.yaml               # stage 00 has connected the project
+    - <ticket>/00-ticket.md
+    - <ticket>/01-requirements.md          # stage 02 has run
+    - .factory/context/CONTEXT.md         # stage 01 has run
+    - .factory/context/ARCHITECTURE.md
+    - .factory/context/CONVENTIONS.md
+  optional:
+    - AGENTS.md
+    - .factory/project.yaml
+    - .factory/decisions.md               # project-wide decisions
+    - <ticket>/decisions.md               # ticket decisions, including earlier question rounds
+  discovery:
+    - Relevant project source, interfaces, manifests, configuration, tests, documentation and CI workflows
+    - Authoritative dependency documentation, when needed to assess a proposed dependency or API
+
+outputs:
+  - <ticket>/02-gameplan.md
+  - <ticket>/questions.json               # only when user input is needed
+  - <ticket>/decisions.md                 # interactive answers; otherwise written by the orchestrator
+  - <ticket>/status.json

@@ -6,7 +6,7 @@
 > Keep `README.md` (the plain-language summary) up to date too, especially its **Status today** table, whenever a stage or phase is finished.
 
 ## Current phase
-**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; stage 01 has a prompt and contract, with a real project run pending. The `factory` command (v1) is built and runs one stage at a time.
+**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; stages 01–03 have prompts and contracts, with real project runs pending. The `factory` command (v1) is built.
 
 ## Done
 - [x] Turned the folder into a git repo and pushed it to GitHub (private): https://github.com/andregoncalvesINV/andre-factory
@@ -15,7 +15,10 @@
 - [x] Installed the `claude` CLI in the terminal (needed by the Phase 2 adapter)
 - [x] Wrote shared rules v1 (`stages/_shared/rules.md`): paths, read-first, allowed outputs, ask vs assume, binding decisions, cite evidence, security, traceability header, status.json
 - [x] Added vendor-neutral `repository-analysis` skill to both stage 01 agent options.
+- [x] Added vendor-neutral `implementation-planning` skill to stage 03: evidence-based design, technical tradeoffs, ordered implementation steps and requirement-to-verification coverage.
+- [x] Wrote stage 03 Gameplan prompt and contract: requirements + context → `02-gameplan.md` with technical decisions, ordered steps and requirement-to-verification coverage. The prompt works independently of configured skills. Dry-run checked; real ticket run pending.
 - [x] Wrote stage 01 Context prompt and contract: evidence-based context documents, detected settings confirmed through the question protocol, and safe refresh of existing outputs. Validated stage resolution and CLI dry run; real project run pending.
+- [x] Wrote stage 02 Requirements prompt and contract: ticket + context → `01-requirements.md` with use cases (`UC#`), testable acceptance criteria (`AC#`), technical requirements (`TR#`), impact, out of scope. Dry-run checked; real ticket run pending.
 - [x] Wrote stage 00 Plug (`stages/00-plug/`): connects a project to the factory once, so stages can be started with "Run factory stage <N>"
 
 - [x] Tested stage 00 by hand on mobile-factory-app-1 (with Claude Code): all outputs correct, question asked before touching AGENTS.md
@@ -23,8 +26,10 @@
 
 ## Next steps
 1. Test stage 01 with `factory stage 1 --project …` on a connected project, including settings confirmation, generated documents, and a rerun using recorded decisions.
-2. **First real run of `factory run`** on a fresh copy of a project, to check stages 00 and 01 end to end, including the question round; it now stops at unwritten stage 02. Only dry runs have been done so far.
-3. Continue with the next stage prompts, one at a time. `factory run` (whole pipeline) once they exist.
+2. **First real run of `factory run`** on a fresh copy of a project, to check stages 00–03 end to end, including question rounds; it now stops at unwritten stage 04. Only dry runs have been done so far.
+3. Test stage 02 with `factory stage 2 --project … --ticket <file>` on a project where stage 01 has run, including a question round.
+4. Test stage 03 with `factory stage 3 --project … --ticket <file>` after stage 02, including technical decision questions and a rerun using recorded answers.
+5. Write stage 04 Development prompt and contract, then continue with the remaining stages one at a time. `factory run` (whole pipeline) once they exist.
 
 ## Decisions made
 _Record each one here: date, decision, reason._
@@ -72,3 +77,7 @@ _Record each one here: date, decision, reason._
 - 2026-11-13: Wrote stage 01 prompt and contract for three context documents and confirmed project settings, including first-run questions, recorded decisions, reruns, and missing tooling. Validated YAML, stage resolution without a ticket, and CLI dry-run prompt composition; no live project run performed. Updated README status and next steps.
 - 2026-11-13: Stage run stats (user): after each stage the orchestrator prints time, rounds, tokens (in/cached/out) and cost (Claude only; Codex reports none), logs one JSON line to `.factory/logs/stages.jsonl`, and `factory run` ends with a per-agent summary. Adapters switched to JSON output (claude `stream-json`, codex `--json`) and gained optional `parseLine()`. Parsers checked against real sample outputs; no full stage run yet.
 - 2026-11-13: Terminal dashboard (user: stage output was walls of text). `run.ts` now emits events to a Reporter: `ui/dashboard.ts` (Ink 8 + React 19, written with createElement so no build step) shows stage rows, the last 8 activity lines, and questions as arrow-key menus with "Other"; `ui/plain.ts` keeps text output (`--plain`, dry runs, non-terminals). Agent stdout+stderr always go to `.factory/logs/<stage>-<time>.log`; on failure the last error lines are shown. `questions.ts` reduced to `recordAnswer()`. Checked with a fake-event demo in a pseudo-terminal (menu, typed answer, summary, error path); no real stage run with it yet.
+- 2026-11-13: Added vendor-neutral `skills/requirements-analysis.md` (intent, grounding in context, use cases, testable acceptance criteria with IDs, scope, ask vs assume) and listed it under `skills` for stage 02 in `config.yaml`. No built-in agent skill fitted, and a native one would tie the stage to one vendor. Stage 02 prompt still unwritten.
+- 2026-11-13: Wrote stage 02 Requirements prompt and contract (requires the stage 01 context docs; asks about behavior, data, security and scope; writes `01-requirements.md` with fixed sections and traceable IDs; no design choices, which stay in stage 03). Dry run composes rules + contract + prompt + requirements-analysis skill; no live run yet.
+- 2026-11-13: Checked stage 03's documented purpose: requirements + context → `02-gameplan.md` with the technical approach, libraries and implementation steps for development, testing and review. No available built-in skill fits; added `skills/implementation-planning.md` and configured it for stage 03. Uses the factory's flat, vendor-neutral skill format; prompt and contract remain placeholders. Verified skill resolution and full-text prompt inclusion through the orchestrator, the unfinished-stage guard, and `git diff --check`; no live agent run.
+- 2026-11-13: Wrote stage 03 Gameplan prompt and contract, independent of configured skills and with no references to them. Defines required inputs, technical decision questions, `02-gameplan.md` sections, ordered steps, requirement-to-verification coverage and completion checks. Verified stage resolution, parsed contract, prompt composition with and without the optional skill, full CLI dry-run output and `git diff --check`. No live ticket run; README status and next steps updated.

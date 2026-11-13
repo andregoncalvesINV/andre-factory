@@ -1,1 +1,27 @@
 # Stage 02: Requirements (inputs/outputs contract)
+# Turn one ticket into testable requirements, grounded in the project's context.
+# <ticket> = .factory/tickets/ticket-<id>/ (the working folder)
+stage: 02-requirements
+ticket: required
+working_folder: .factory/tickets/ticket-<id>/
+
+inputs:
+  required:
+    - .factory/factory.yaml               # stage 00 has connected the project
+    - <ticket>/00-ticket.md               # the ticket text, copied in by the orchestrator
+    - .factory/context/CONTEXT.md         # stage 01 has run
+    - .factory/context/ARCHITECTURE.md
+    - .factory/context/CONVENTIONS.md
+  optional:
+    - AGENTS.md
+    - .factory/project.yaml
+    - .factory/decisions.md               # project-wide decisions
+    - <ticket>/decisions.md               # answers to this stage's earlier questions
+  discovery:
+    - Project source, tests and documentation, only to check how the behavior the ticket touches works today
+
+outputs:
+  - <ticket>/01-requirements.md
+  - <ticket>/questions.json               # only when user input is needed
+  - <ticket>/decisions.md                 # interactive answers; otherwise written by the orchestrator
+  - <ticket>/status.json
