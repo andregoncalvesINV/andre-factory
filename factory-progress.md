@@ -6,7 +6,7 @@
 > Keep `README.md` (the plain-language summary) up to date too, especially its **Status today** table, whenever a stage or phase is finished.
 
 ## Current phase
-**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; the `factory` command (v1) is built and runs one stage at a time.
+**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; stage 01 has a prompt and contract, with a real project run pending. The `factory` command (v1) is built and runs one stage at a time.
 
 ## Done
 - [x] Turned the folder into a git repo and pushed it to GitHub (private): https://github.com/andregoncalvesINV/andre-factory
@@ -14,16 +14,17 @@
 - [x] Scaffolded the repo: `stages/*/` (prompt.md + contract.yaml, header line only), empty `orchestrator/` and `adapters/`, `config.yaml` with `adapter: TBD` per stage, `.gitignore`.
 - [x] Installed the `claude` CLI in the terminal (needed by the Phase 2 adapter)
 - [x] Wrote shared rules v1 (`stages/_shared/rules.md`): paths, read-first, allowed outputs, ask vs assume, binding decisions, cite evidence, security, traceability header, status.json
+- [x] Added vendor-neutral `repository-analysis` skill to both stage 01 agent options.
+- [x] Wrote stage 01 Context prompt and contract: evidence-based context documents, detected settings confirmed through the question protocol, and safe refresh of existing outputs. Validated stage resolution and CLI dry run; real project run pending.
 - [x] Wrote stage 00 Plug (`stages/00-plug/`): connects a project to the factory once, so stages can be started with "Run factory stage <N>"
 
 - [x] Tested stage 00 by hand on mobile-factory-app-1 (with Claude Code): all outputs correct, question asked before touching AGENTS.md
 - [x] Built the orchestrator v1 (`orchestrator/`): `factory run` (whole line from 00, stops at the first unwritten or failed stage), `factory stage <N>`, `--dry-run` option; adapters `adapters/codex/run.ts` and `adapters/claude-code/run.ts`; terminal Q&A loop; type-checks; linked with `npm link`
 
 ## Next steps
-1. **First real run of `factory run`** (Codex; it will do stage 00, then stop at 01) on a fresh copy of a project, to check the orchestrator end to end, including the question round. Only dry runs have been done so far.
-2. Write `stages/01-context/prompt.md` (+ `contract.yaml`): detects project settings into `project.yaml` and asks the user to confirm them.
-3. Test stage 01 with `factory stage 1 --project …`.
-4. Continue with the next stage prompts, one at a time. `factory run` (whole pipeline) once they exist.
+1. Test stage 01 with `factory stage 1 --project …` on a connected project, including settings confirmation, generated documents, and a rerun using recorded decisions.
+2. **First real run of `factory run`** on a fresh copy of a project, to check stages 00 and 01 end to end, including the question round; it now stops at unwritten stage 02. Only dry runs have been done so far.
+3. Continue with the next stage prompts, one at a time. `factory run` (whole pipeline) once they exist.
 
 ## Decisions made
 _Record each one here: date, decision, reason._
@@ -67,3 +68,6 @@ _Record each one here: date, decision, reason._
 - 2026-11-13: Skills split in two (user): `skills` = ours (skills/ files, pasted into the prompt, any agent); `nativeSkills` = built into that option's agent, only named in the prompt, must be installed. Noted: the skills/ folder was my own design choice in the models+skills change, not explicitly requested.
 - 2026-11-13: Added optional `effort` per option in config.yaml (user asked for "tokenEffort"; named `effort` to match both CLIs). claude-code → `--effort`, codex → `-c model_reasoning_effort=...`.
 - 2026-11-13: All agent options set to `effort: medium`; claude-code options pinned to `model: claude-opus-5-5` (codex uses its default).
+- 2026-11-13: Added `skills/repository-analysis.md` for evidence-based project investigation across languages and frameworks; configured it under custom `skills` for both stage 01 options. Verified skill resolution and inclusion in composed prompts for both agents; stage 01 itself remains unwritten.
+- 2026-11-13: Wrote stage 01 prompt and contract for three context documents and confirmed project settings, including first-run questions, recorded decisions, reruns, and missing tooling. Validated YAML, stage resolution without a ticket, and CLI dry-run prompt composition; no live project run performed. Updated README status and next steps.
+- 2026-11-13: Stage run stats (user): after each stage the orchestrator prints time, rounds, tokens (in/cached/out) and cost (Claude only; Codex reports none), logs one JSON line to `.factory/logs/stages.jsonl`, and `factory run` ends with a per-agent summary. Adapters switched to JSON output (claude `stream-json`, codex `--json`) and gained optional `parseLine()`. Parsers checked against real sample outputs; no full stage run yet.

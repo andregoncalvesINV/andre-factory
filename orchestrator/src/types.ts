@@ -15,8 +15,24 @@ export type AgentCommand = {
   cwd: string;
 };
 
+// What an agent spent, as far as it reports it. inputTokens includes cachedInputTokens.
+export type Usage = {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  costUsd?: number;   // only if the agent reports it
+  turns?: number;
+  models?: string[];  // models the agent actually used
+};
+
+// One line of the agent's output, read by the adapter: text to show, and/or usage to add up.
+export type ParsedLine = { text?: string; usage?: Usage };
+
 export type Adapter = {
   command(request: AgentRequest): AgentCommand;
+  // Optional. With it, the orchestrator reads the agent's output line by line (for usage stats).
+  // Without it, the output goes straight to the terminal and only the time is measured.
+  parseLine?(line: string): ParsedLine;
 };
 
 // Optional adapters/<agent>/plug.ts: one-time project setup for that agent, run after stage 00.

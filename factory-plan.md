@@ -24,6 +24,8 @@ Three layers, kept strictly apart:
 
 **Stage prompts say only *what* to do.** The final prompt is composed by the orchestrator: shared rules + stage prompt + skills, sent to the active agent and model from `config.yaml`. A stage prompt never names an agent, a model, a skill or `config.yaml`.
 
+**Run stats.** After every stage the orchestrator prints the time, rounds and tokens used (input, of which cached, and output), plus cost when the agent reports it. It appends one JSON line per stage to `<project>/.factory/logs/stages.jsonl` (git-ignored); `factory run` ends with totals per agent. Reading an agent's usage is vendor-specific, so each adapter has an optional `parseLine()` for its CLI's JSON output (claude-code: `stream-json`; codex: `--json`, no cost reported). An adapter without one gets time-only stats.
+
 **Vendor rule:** anything specific to one agent lives only in `adapters/<agent>/`. Stages, shared rules and the project's `.factory/` never mention a vendor. Dropping an agent = removing it from `config.yaml` and deleting its adapter folder.
 
 Agents talk to each other **only through markdown/JSON files on disk**. So any agent that can read and write files can do any stage, and swapping vendors only means changing one line of config.

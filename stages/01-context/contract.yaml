@@ -1,1 +1,28 @@
 # Stage 01: Context (inputs/outputs contract)
+# Establish project context and confirm detected settings. No ticket required.
+stage: 01-context
+ticket: none
+working_folder: .factory/
+
+inputs:
+  required:
+    - .factory/factory.yaml         # stage 00 has connected the project
+  optional:
+    - AGENTS.md
+    - .factory/project.yaml
+    - .factory/context/CONTEXT.md
+    - .factory/context/ARCHITECTURE.md
+    - .factory/context/CONVENTIONS.md
+    - .factory/decisions.md
+  discovery:
+    - Project source, manifests, configuration, documentation, tests, and CI workflows
+    - Local Git metadata for repository and main-branch detection
+
+outputs:
+  - .factory/context/CONTEXT.md
+  - .factory/context/ARCHITECTURE.md
+  - .factory/context/CONVENTIONS.md
+  - .factory/project.yaml
+  - .factory/questions.json         # only when user input is needed
+  - .factory/decisions.md           # interactive answers; otherwise written by the orchestrator
+  - .factory/status.json

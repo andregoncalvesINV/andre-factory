@@ -1,11 +1,13 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
+import { createInterface } from 'node:readline';
 import { activeOption, FACTORY_ROOT, loadConfig, stageSkills, usedAdapters } from './config.ts';
 import { buildPrompt } from './prompt.ts';
 import { askQuestions, type Question } from './questions.ts';
 import { mainLine, prepareTicket, resolveStage, StageNotWrittenError } from './stage.ts';
-import type { Adapter, AgentCommand, Plug } from './types.ts';
+import { addUsage, emptyUsage, formatStats, logStats, printSummary, type StageStats } from './stats.ts';
+import type { Adapter, AgentCommand, Plug, Usage } from './types.ts';
 
 const MAX_ROUNDS = 5; // question rounds before giving up
 
@@ -22,13 +24,29 @@ async function loadAdapter(name: string): Promise<Adapter> {
   return (await import(file)) as Adapter;
 }
 
-function start(cmd: AgentCommand): Promise<number> {
+// Starts the agent. With parseLine, its output is read line by line: text is shown, usage is added up.
+function start(cmd: AgentCommand, parseLine?: Adapter['parseLine']): Promise<{ code: number; usage?: Usage }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd.command, cmd.args, { cwd: cmd.cwd, stdio: ['ignore', 'inherit', 'inherit'] });
+    const child = spawn(cmd.command, cmd.args, {
+      cwd: cmd.cwd,
+      stdio: ['ignore', parseLine ? 'pipe' : 'inherit', 'inherit'],
+    });
+    let usage: Usage | undefined;
+    let lines: Promise<void> = Promise.resolve();
+    if (parseLine && child.stdout) {
+      const reader = createInterface({ input: child.stdout });
+      reader.on('line', (line) => {
+        if (!line.trim()) return;
+        const parsed = parseLine(line);
+        if (parsed.text) console.log(parsed.text);
+        if (parsed.usage) usage = addUsage(usage ?? emptyUsage(), parsed.usage);
+      });
+      lines = new Promise((done) => reader.on('close', () => done()));
+    }
     child.on('error', (err: NodeJS.ErrnoException) =>
       reject(err.code === 'ENOENT' ? new Error(`"${cmd.command}" isn't installed or isn't on PATH.`) : err),
     );
-    child.on('close', (code) => resolve(code ?? 1));
+    child.on('close', (code) => lines.then(() => resolve({ code: code ?? 1, usage })));
   });
 }
 
@@ -49,6 +67,12 @@ function readJson<T>(file: string): T | undefined {
 
 // Runs one stage with the agent set in config.yaml. Returns the process exit code.
 export async function runStage(opts: RunOptions): Promise<number> {
+  return (await runStageWithStats(opts)).code;
+}
+
+type StageResult = { code: number; stats?: StageStats };
+
+async function runStageWithStats(opts: RunOptions): Promise<StageResult> {
   const project = path.resolve(opts.project);
   if (!existsSync(project)) throw new Error(`Project folder not found: ${project}`);
 
@@ -79,6 +103,30 @@ export async function runStage(opts: RunOptions): Promise<number> {
   const statusFile = path.join(workingFolder, 'status.json');
   const questionsFile = path.join(workingFolder, 'questions.json');
 
+  const startedAt = new Date();
+  let agentMs = 0;
+  let rounds = 0;
+  let usage: Usage | undefined;
+  // Every way out after the agent ran: print the stats line, log it, return.
+  const finish = (code: number, status: string, message: string): StageResult => {
+    const stats: StageStats = {
+      stage: stage.dir,
+      ticket: ticketId,
+      agent: stageConfig.adapter,
+      model: stageConfig.model,
+      effort: stageConfig.effort,
+      status,
+      startedAt: startedAt.toISOString(),
+      durationMs: Date.now() - startedAt.getTime(),
+      agentMs,
+      rounds,
+      usage,
+    };
+    (code === 0 ? console.log : console.error)(`\n${message}\n  ${formatStats(stats)}`);
+    logStats(project, stats);
+    return { code, stats };
+  };
+
   for (let round = 1; round <= MAX_ROUNDS; round++) {
     const prompt = buildPrompt({
       stage,
@@ -102,7 +150,7 @@ export async function runStage(opts: RunOptions): Promise<number> {
     if (opts.dryRun) {
       console.log(`[dry run] would start: ${cmd.command} ${cmd.args.slice(0, -1).join(' ')} <prompt>  (in ${cmd.cwd})\n`);
       console.log(prompt);
-      return 0;
+      return { code: 0 };
     }
 
     console.log(`\n▶ Stage ${stage.dir} with ${stageConfig.adapter}${round > 1 ? ` (round ${round})` : ''}\n`);
@@ -110,43 +158,43 @@ export async function runStage(opts: RunOptions): Promise<number> {
     rmSync(statusFile, { force: true });
     rmSync(questionsFile, { force: true });
 
-    const exitCode = await start(cmd);
+    const agentStart = Date.now();
+    const run = await start(cmd, adapter.parseLine);
+    agentMs += Date.now() - agentStart;
+    rounds = round;
+    if (run.usage) usage = addUsage(usage ?? emptyUsage(), run.usage);
     const status = readJson<{ status: string; summary?: string }>(statusFile);
 
     if (!status) {
-      console.error(`\n✗ ${stageConfig.adapter} finished (exit code ${exitCode}) without writing status.json.`);
-      return 1;
+      return finish(1, 'error', `✗ ${stageConfig.adapter} finished (exit code ${run.code}) without writing status.json.`);
     }
     if (status.status === 'done') {
-      console.log(`\n✓ Stage ${stage.dir} done: ${status.summary ?? ''}`);
+      const result = finish(0, 'done', `✓ Stage ${stage.dir} done: ${status.summary ?? ''}`);
       if (stage.key === 'plug') await plugAgents(usedAdapters(config), project);
-      return 0;
+      return result;
     }
     if (status.status === 'failed') {
-      console.error(`\n✗ Stage ${stage.dir} failed: ${status.summary ?? ''}`);
-      return 1;
+      return finish(1, 'failed', `✗ Stage ${stage.dir} failed: ${status.summary ?? ''}`);
     }
     if (status.status === 'needs_input') {
       const questions = readJson<{ questions?: Question[] }>(questionsFile)?.questions ?? [];
       if (!questions.length) {
-        console.error('\n✗ The agent asked for input but wrote no questions.json.');
-        return 1;
+        return finish(1, 'error', '✗ The agent asked for input but wrote no questions.json.');
       }
       console.log(`\nThe agent needs ${questions.length} decision(s):`);
       await askQuestions(questions, path.join(workingFolder, 'decisions.md'), stage.dir);
       continue;
     }
-    console.error(`\n✗ Unknown status "${status.status}" in status.json.`);
-    return 1;
+    return finish(1, 'error', `✗ Unknown status "${status.status}" in status.json.`);
   }
 
-  console.error(`\n✗ Stopped after ${MAX_ROUNDS} question rounds.`);
-  return 1;
+  return finish(1, 'needs_input', `✗ Stopped after ${MAX_ROUNDS} question rounds.`);
 }
 
 // Runs the whole line from stage 00, stopping at the first stage that fails or isn't written yet.
 export async function runAll(opts: Omit<RunOptions, 'stage'>): Promise<number> {
   const plugged = existsSync(path.join(path.resolve(opts.project), '.factory', 'factory.yaml'));
+  const all: StageStats[] = [];
 
   for (const stage of mainLine()) {
     if (stage === '00' && plugged) {
@@ -154,14 +202,20 @@ export async function runAll(opts: Omit<RunOptions, 'stage'>): Promise<number> {
       continue;
     }
     try {
-      const code = await runStage({ ...opts, stage });
-      if (code !== 0) return code;
+      const { code, stats } = await runStageWithStats({ ...opts, stage });
+      if (stats) all.push(stats);
+      if (code !== 0) {
+        printSummary(all);
+        return code;
+      }
     } catch (err) {
       if (!(err instanceof StageNotWrittenError)) throw err;
       console.log(`\n■ Stopped: ${err.message}`);
+      printSummary(all);
       return 0;
     }
   }
   console.log('\n✓ All stages done.');
+  printSummary(all);
   return 0;
 }

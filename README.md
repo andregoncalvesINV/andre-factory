@@ -4,7 +4,7 @@
 
 Each step is done by an AI agent (Codex, Claude Code…), and any agent can be swapped for another in one line of [config.yaml](config.yaml). When a real decision is needed, it asks you.
 
-> **Early work in progress:** only stage 00 is ready today. See [Status](#status).
+> **Early work in progress:** stage 00 is ready; stage 01 is written and awaits a real project run. See [Status](#status).
 
 ---
 
@@ -83,6 +83,7 @@ factory run --ticket my-ticket.txt         # all stages in order
 
 - **Questions:** type the number of your choice, or press Enter for the recommended one.
 - **Results:** everything the factory writes is in your project's `.factory/` folder.
+- **Stats:** after each stage you see how long it took and the tokens used (and cost, if the agent reports it). `factory run` ends with totals per agent. The full history is in `.factory/logs/stages.jsonl`.
 
 ---
 
@@ -92,7 +93,8 @@ factory run --ticket my-ticket.txt         # all stages in order
 |---|---|
 | Stage 00 (connect a project) | ✅ Ready |
 | `factory` command | ✅ Ready |
-| Stages 01–08 | ⏳ Being written, one by one |
+| Stage 01 (project context) | 📝 Prompt and contract written; dry-run checked, real project run pending |
+| Stages 02–08 | ⏳ Being written, one by one |
 
 ---
 

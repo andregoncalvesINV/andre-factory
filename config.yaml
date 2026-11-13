@@ -14,8 +14,8 @@ stages:
   plug:                                         # any agent works
     - { adapter: codex, model: gpt-6.1-sol, effort: medium, isActive: true }
   context:
-    - { adapter: codex, model: gpt-6.1-sol, effort: medium, isActive: true }
-    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: false }  # alternative, for comparing
+    - { adapter: codex, model: gpt-6.1-sol, effort: medium, skills: [repository-analysis], isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, skills: [repository-analysis], isActive: false }  # alternative, for comparing
   requirements:
     - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: true }
   gameplan:
