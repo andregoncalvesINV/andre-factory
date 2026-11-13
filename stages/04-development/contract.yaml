@@ -1,1 +1,37 @@
 # Stage 04: Development (inputs/outputs contract)
+# Implement the agreed gameplan in the project's code. In a fix loop, act on the review findings.
+# <ticket> = .factory/tickets/ticket-<id>/ (the working folder)
+stage: 04-development
+ticket: required
+working_folder: .factory/tickets/ticket-<id>/
+
+inputs:
+  required:
+    - .factory/factory.yaml               # stage 00 has connected the project
+    - <ticket>/00-ticket.md
+    - <ticket>/01-requirements.md          # stage 02 has run
+    - <ticket>/02-gameplan.md              # stage 03 has run
+    - .factory/context/CONTEXT.md         # stage 01 has run
+    - .factory/context/ARCHITECTURE.md
+    - .factory/context/CONVENTIONS.md
+  optional:
+    - AGENTS.md
+    - .factory/project.yaml               # install/build/lint/test commands
+    - .factory/decisions.md               # project-wide decisions
+    - <ticket>/decisions.md               # ticket decisions, including earlier question rounds
+    - <ticket>/03-dev-summary.md           # previous run of this stage
+  fix_loop:                               # present only after a failed review
+    - <ticket>/05b-review-gameplan.md      # the fix plan; its presence means this run is a fix loop
+    - <ticket>/05-review.json              # findings, with IDs and severities
+    - <ticket>/05-review.md
+    - <ticket>/04-tests.md                 # test results from the previous iteration
+  discovery:
+    - Source, interfaces, tests and configuration the gameplan names, and the code around them
+    - The working tree's current changes (git status / git diff), to see work already done
+
+outputs:
+  - project code: source, configuration and dependency changes named in the gameplan or fix plan
+  - <ticket>/03-dev-summary.md
+  - <ticket>/questions.json               # only when user input is needed
+  - <ticket>/decisions.md                 # interactive answers; otherwise written by the orchestrator
+  - <ticket>/status.json

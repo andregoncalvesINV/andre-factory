@@ -6,7 +6,7 @@
 > Keep `README.md` (the plain-language summary) up to date too, especially its **Status today** table, whenever a stage or phase is finished.
 
 ## Current phase
-**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; stages 01–03 have prompts and contracts, with real project runs pending. The `factory` command (v1) is built.
+**Phase 1 (stage prompts) and Phase 2 (orchestrator) in parallel.** Stage 00 is written and tested by hand; stages 01–04 have prompts and contracts, with real project runs pending. The `factory` command (v1) is built.
 
 ## Done
 - [x] Turned the folder into a git repo and pushed it to GitHub (private): https://github.com/andregoncalvesINV/andre-factory
@@ -16,6 +16,7 @@
 - [x] Wrote shared rules v1 (`stages/_shared/rules.md`): paths, read-first, allowed outputs, ask vs assume, binding decisions, cite evidence, security, traceability header, status.json
 - [x] Added vendor-neutral `repository-analysis` skill to both stage 01 agent options.
 - [x] Added vendor-neutral `implementation-planning` skill to stage 03: evidence-based design, technical tradeoffs, ordered implementation steps and requirement-to-verification coverage.
+- [x] Wrote stage 04 Development prompt and contract: gameplan → code + `03-dev-summary.md` (commit-style summary, changes by step, review findings, checks run, deviations). Fix loop detected by `05b-review-gameplan.md`; every finding fixed or disputed with `FACTORY-DISPUTE(<id>)`. Continues from the working tree on reruns. Dry-run checked; real ticket run pending.
 - [x] Wrote stage 03 Gameplan prompt and contract: requirements + context → `02-gameplan.md` with technical decisions, ordered steps and requirement-to-verification coverage. The prompt works independently of configured skills. Dry-run checked; real ticket run pending.
 - [x] Wrote stage 01 Context prompt and contract: evidence-based context documents, detected settings confirmed through the question protocol, and safe refresh of existing outputs. Validated stage resolution and CLI dry run; real project run pending.
 - [x] Wrote stage 02 Requirements prompt and contract: ticket + context → `01-requirements.md` with use cases (`UC#`), testable acceptance criteria (`AC#`), technical requirements (`TR#`), impact, out of scope. Dry-run checked; real ticket run pending.
@@ -29,7 +30,8 @@
 2. **First real run of `factory run`** on a fresh copy of a project, to check stages 00–03 end to end, including question rounds; it now stops at unwritten stage 04. Only dry runs have been done so far.
 3. Test stage 02 with `factory stage 2 --project … --ticket <file>` on a project where stage 01 has run, including a question round.
 4. Test stage 03 with `factory stage 3 --project … --ticket <file>` after stage 02, including technical decision questions and a rerun using recorded answers.
-5. Write stage 04 Development prompt and contract, then continue with the remaining stages one at a time. `factory run` (whole pipeline) once they exist.
+5. Give the claude-code adapter the shell access stage 04 needs (`git diff`, the project's build/lint/test commands); today it allows only `git status`, `rev-parse`, `check-ignore`.
+6. Write stage 05 Testing prompt and contract, then continue with the remaining stages one at a time. `factory run` (whole pipeline) once they exist.
 
 ## Decisions made
 _Record each one here: date, decision, reason._
@@ -81,3 +83,5 @@ _Record each one here: date, decision, reason._
 - 2026-11-13: Wrote stage 02 Requirements prompt and contract (requires the stage 01 context docs; asks about behavior, data, security and scope; writes `01-requirements.md` with fixed sections and traceable IDs; no design choices, which stay in stage 03). Dry run composes rules + contract + prompt + requirements-analysis skill; no live run yet.
 - 2026-11-13: Checked stage 03's documented purpose: requirements + context → `02-gameplan.md` with the technical approach, libraries and implementation steps for development, testing and review. No available built-in skill fits; added `skills/implementation-planning.md` and configured it for stage 03. Uses the factory's flat, vendor-neutral skill format; prompt and contract remain placeholders. Verified skill resolution and full-text prompt inclusion through the orchestrator, the unfinished-stage guard, and `git diff --check`; no live agent run.
 - 2026-11-13: Wrote stage 03 Gameplan prompt and contract, independent of configured skills and with no references to them. Defines required inputs, technical decision questions, `02-gameplan.md` sections, ordered steps, requirement-to-verification coverage and completion checks. Verified stage resolution, parsed contract, prompt composition with and without the optional skill, full CLI dry-run output and `git diff --check`. No live ticket run; README status and next steps updated.
+- 2026-11-13: Checked stage 04's documented purpose: gameplan + conventions (+ review and fix plan in a fix loop) → code on the ticket branch + `03-dev-summary.md`, judging each review finding (fix or `FACTORY-DISPUTE`). No built-in skill fits (`simplify`/`code-review` are Claude-only review passes; `clean-code` already covers style). Added vendor-neutral `skills/implementation.md` (follow the plan in order, smallest change, check as you go, fix-loop judgement, hand-off) and listed it with `clean-code` for stage 04. Prompt and contract remain placeholders.
+- 2026-11-13: Wrote stage 04 Development prompt and contract (user). Requires stages 00–03 outputs; questions before edits where possible, code kept in place on `needs_input`; steps implemented in order; only planned dependencies; existing tests updated only for intended behavior changes (new tests are stage 05); fix loop when `05b-review-gameplan.md` exists, each finding accepted or disputed with `FACTORY-DISPUTE(<id>)`; runs the project's checks and reports them honestly; no commits or branch changes. Dry run composes rules + contract + prompt + clean-code + implementation skills; no live run. Open: the claude-code adapter's allowed shell commands don't yet cover `git diff` or build/lint/test.

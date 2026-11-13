@@ -21,7 +21,7 @@ stages:
   gameplan:
     - { adapter: codex, model: gpt-6.1-sol, effort: medium, skills: [implementation-planning], isActive: true }
   development:
-    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, skills: [clean-code], isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, skills: [clean-code, implementation], isActive: true }
   testing:
     - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: true }
   code_review:

@@ -4,7 +4,7 @@
 
 Each step is done by an AI agent (Codex, Claude Code…), and any agent can be swapped for another in one line of [config.yaml](config.yaml). When a real decision is needed, it asks you.
 
-> **Early work in progress:** stage 00 is ready; stages 01–03 are written and await real project runs. See [Status](#status).
+> **Early work in progress:** stage 00 is ready; stages 01–04 are written and await real project runs. See [Status](#status).
 
 ---
 
@@ -97,7 +97,8 @@ factory run --ticket my-ticket.txt         # all stages in order
 | Stage 01 (project context) | 📝 Prompt and contract written; dry-run checked, real project run pending |
 | Stage 02 (requirements) | 📝 Prompt and contract written; dry-run checked, real ticket run pending |
 | Stage 03 (gameplan) | 📝 Prompt and contract written; dry-run checked, real ticket run pending |
-| Stages 04–08 | ⏳ Being written, one by one |
+| Stage 04 (development) | 📝 Prompt and contract written; dry-run checked, real ticket run pending (needs shell access for build/lint/test) |
+| Stages 05–08 | ⏳ Being written, one by one |
 
 ---
 
