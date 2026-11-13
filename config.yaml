@@ -3,31 +3,33 @@
 #
 # Each stage is a list of options. Exactly one has isActive: true; flip it to switch or compare agents.
 #   adapter:      the agent (a folder in adapters/), or "none"
-#   model:        optional; passed to the agent as-is (e.g. "opus" for claude-code). Left out = the agent's default.
+#   model:        optional; passed to the agent as-is (e.g. claude-opus-5-5 for claude-code). Left out = the agent's default.
+#   effort:       optional; how hard the model reasons, passed as-is. Levels are per agent:
+#                 claude-code: low | medium | high | xhigh | max; codex: its model_reasoning_effort levels (e.g. low | medium | high)
 #   skills:       optional; ours: names of files in skills/ (without .md), pasted into that stage's prompt (any agent)
 #   nativeSkills: optional; built into this option's agent (e.g. a Claude Code plugin); must already be installed for it
 #   isActive:     true for the option that runs
 # A project can add skills for every stage in <project>/.factory/project.yaml (skills: [expo]).
 stages:
   plug:                                         # any agent works
-    - { adapter: codex, isActive: true }
+    - { adapter: codex, model: gpt-6.1-sol, effort: medium, isActive: true }
   context:
-    - { adapter: codex, isActive: true }
-    - { adapter: claude-code, isActive: false }  # alternative, for comparing
+    - { adapter: codex, model: gpt-6.1-sol, effort: medium, isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: false }  # alternative, for comparing
   requirements:
-    - { adapter: claude-code, isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: true }
   gameplan:
-    - { adapter: codex, isActive: true }
+    - { adapter: codex, model: gpt-6.1-sol, effort: medium, isActive: true }
   development:
-    - { adapter: claude-code, skills: [clean-code], isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, skills: [clean-code], isActive: true }
   testing:
-    - { adapter: claude-code, isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: true }
   code_review:
-    - { adapter: codex, skills: [clean-code], isActive: true }
+    - { adapter: codex, model: gpt-6.1-sol, effort: medium, skills: [clean-code], isActive: true }
   review_gameplan:
-    - { adapter: claude-code, isActive: true }
+    - { adapter: claude-code, model: claude-opus-5-5, effort: medium, isActive: true }
   context_update:
-    - { adapter: codex, isActive: true }
+    - { adapter: codex, model: gpt-6.1-sol, effort: medium, isActive: true }
   commit:                                       # deterministic, no AI
     - { adapter: none, isActive: true }
 

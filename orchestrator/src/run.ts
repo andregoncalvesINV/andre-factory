@@ -91,7 +91,13 @@ export async function runStage(opts: RunOptions): Promise<number> {
       skills,
       nativeSkills: stageConfig.nativeSkills ?? [],
     });
-    const cmd = adapter.command({ prompt, project, factory: FACTORY_ROOT, model: stageConfig.model });
+    const cmd = adapter.command({
+      prompt,
+      project,
+      factory: FACTORY_ROOT,
+      model: stageConfig.model,
+      effort: stageConfig.effort,
+    });
 
     if (opts.dryRun) {
       console.log(`[dry run] would start: ${cmd.command} ${cmd.args.slice(0, -1).join(' ')} <prompt>  (in ${cmd.cwd})\n`);

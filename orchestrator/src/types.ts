@@ -6,6 +6,7 @@ export type AgentRequest = {
   project: string;  // absolute path; the agent runs inside it
   factory: string;  // absolute path of the factory root
   model?: string;   // from config.yaml, if set
+  effort?: string;  // reasoning effort, from config.yaml, if set (levels are per agent)
 };
 
 export type AgentCommand = {

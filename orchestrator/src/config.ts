@@ -10,6 +10,7 @@ export const FACTORY_ROOT = path.resolve(import.meta.dirname, '../..');
 export type StageConfig = {
   adapter: string;
   model?: string;
+  effort?: string;
   skills?: string[];
   nativeSkills?: string[];
   isActive?: boolean;

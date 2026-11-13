@@ -20,7 +20,7 @@ Three layers, kept strictly apart:
 | **Stage definitions** | One folder per stage: a prompt template (markdown), the list of files it reads, the files it must write. | No |
 | **Agent adapters** | Thin wrappers that say "run this prompt in this folder with this agent" (Claude Code `claude -p`, Codex `codex exec`, Gemini CLI, Aider, or a raw API call). | Yes, but tiny and swappable |
 
-**Models and skills per stage:** `model` is passed to the agent as-is. Two kinds of skills: `skills` are ours, files in `skills/` whose text the orchestrator adds to the prompt, so they work with any agent (a project can add more in `.factory/project.yaml`). `nativeSkills` are built into that option's agent (e.g. a Claude Code plugin); the orchestrator only names them in the prompt, and they must already be installed for that agent.
+**Models, effort and skills per stage:** `model` and `effort` (how hard the model reasons; levels are per agent) are passed to the agent as-is. Two kinds of skills: `skills` are ours, files in `skills/` whose text the orchestrator adds to the prompt, so they work with any agent (a project can add more in `.factory/project.yaml`). `nativeSkills` are built into that option's agent (e.g. a Claude Code plugin); the orchestrator only names them in the prompt, and they must already be installed for that agent.
 
 **Stage prompts say only *what* to do.** The final prompt is composed by the orchestrator: shared rules + stage prompt + skills, sent to the active agent and model from `config.yaml`. A stage prompt never names an agent, a model, a skill or `config.yaml`.
 
